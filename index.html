@@ -392,6 +392,9 @@
       padding: 0 18px;
       font-size: .95rem;
       font-family: inherit;
+      touch-action: manipulation;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .music-player {
@@ -533,29 +536,41 @@
       }
     }
 
-    welcomeClose.addEventListener("click", event => {
-      event.stopPropagation();
-      welcomeModal.classList.add("is-hidden");
-      startBackgroundMusic();
-    });
-
-    guideView.addEventListener("click", event => {
-      event.stopPropagation();
-      guideModal.classList.remove("is-hidden");
-    });
-
-    function closeGuide(event) {
+    function consumeModalEvent(event) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation();
-      guideModal.classList.add("is-hidden");
+      event.stopImmediatePropagation?.();
       lookDrag.active = false;
       lookDrag.moved = false;
     }
 
-    guideClose.addEventListener("pointerdown", closeGuide);
-    guideClose.addEventListener("touchend", closeGuide);
-    guideClose.addEventListener("click", closeGuide);
+    function bindInstantButton(button, action) {
+      ["pointerdown", "pointerup", "mousedown", "mouseup", "touchstart", "touchend", "click"].forEach(eventName => {
+        button.addEventListener(eventName, action);
+      });
+    }
+
+    function enterGallery(event) {
+      consumeModalEvent(event);
+      if (welcomeModal.classList.contains("is-hidden")) return;
+      welcomeModal.classList.add("is-hidden");
+      startBackgroundMusic();
+    }
+
+    function openGuide(event) {
+      consumeModalEvent(event);
+      guideModal.classList.remove("is-hidden");
+    }
+
+    function closeGuide(event) {
+      consumeModalEvent(event);
+      if (guideModal.classList.contains("is-hidden")) return;
+      guideModal.classList.add("is-hidden");
+    }
+
+    bindInstantButton(welcomeClose, enterGallery);
+    bindInstantButton(guideView, openGuide);
+    bindInstantButton(guideClose, closeGuide);
 
     const artworks = [
       {
@@ -1398,7 +1413,7 @@
       const dx = event.clientX - lookDrag.startX;
       const dy = event.clientY - lookDrag.startY;
       if (Math.abs(dx) + Math.abs(dy) > 6) lookDrag.moved = true;
-      target.yaw = THREE.MathUtils.clamp(lookDrag.yaw - dx * .0045, -1.38, 1.38);
+      target.yaw = THREE.MathUtils.clamp(lookDrag.yaw - dx * .0022, -1.38, 1.38);
       target.pitch = THREE.MathUtils.clamp(lookDrag.pitch - dy * .0032, -.42, .42);
       viewingArt = null;
     }
@@ -1575,7 +1590,7 @@
       const centerDy = metrics.centerY - touchGesture.startCenterY;
       const distanceRatio = touchGesture.startDistance / Math.max(metrics.distance, 1);
       const zoomRatio = Math.pow(distanceRatio, 2.45);
-      target.yaw = THREE.MathUtils.clamp(touchGesture.yaw - centerDx * .0048, -1.38, 1.38);
+      target.yaw = THREE.MathUtils.clamp(touchGesture.yaw - centerDx * .0022, -1.38, 1.38);
       target.pitch = THREE.MathUtils.clamp(touchGesture.pitch - centerDy * .003, -.42, .42);
       setZoomFov(touchGesture.fov * zoomRatio);
     }, { passive: false });
@@ -1609,7 +1624,7 @@
       event.preventDefault();
       viewingArt = null;
       if (Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.15) {
-        target.yaw = THREE.MathUtils.clamp(target.yaw - event.deltaX * .006, -1.38, 1.38);
+        target.yaw = THREE.MathUtils.clamp(target.yaw - event.deltaX * .002, -1.38, 1.38);
         return;
       }
       zoomByWheel(event.deltaY);
@@ -1672,7 +1687,7 @@
       current.x = THREE.MathUtils.lerp(current.x, target.x, .055);
       current.y = THREE.MathUtils.lerp(current.y, target.y, .055);
       current.z = THREE.MathUtils.lerp(current.z, target.z, .055);
-      current.yaw = THREE.MathUtils.lerp(current.yaw, target.yaw, .06);
+      current.yaw = THREE.MathUtils.lerp(current.yaw, target.yaw, .045);
       current.pitch = THREE.MathUtils.lerp(current.pitch, target.pitch, .06);
       current.fov = THREE.MathUtils.lerp(current.fov, target.fov, .18);
 
