@@ -181,7 +181,7 @@
 
     .progress {
       right: clamp(16px, 3vw, 32px);
-      bottom: clamp(18px, 4vw, 42px);
+      bottom: clamp(76px, 8vw, 92px);
       width: min(220px, 34vw);
       height: 5px;
       overflow: hidden;
@@ -196,6 +196,64 @@
       border-radius: inherit;
       background: var(--accent);
       transform-origin: left center;
+    }
+
+    .home-control {
+      position: fixed;
+      right: clamp(16px, 3vw, 32px);
+      bottom: clamp(18px, 4vw, 42px);
+      z-index: 4;
+      display: grid;
+      grid-template-columns: repeat(3, 42px);
+      grid-template-rows: repeat(3, 42px) 38px;
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 241, .72);
+      box-shadow: 0 22px 60px rgba(76, 59, 40, .16);
+      backdrop-filter: blur(18px);
+      pointer-events: auto;
+    }
+
+    .home-control button {
+      width: 42px;
+      min-width: 0;
+      height: 42px;
+      padding: 0;
+      background: rgba(255, 255, 255, .62);
+      font-size: 1rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .home-control .move-forward {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .home-control .move-left {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .home-control .move-home {
+      grid-column: 1 / 4;
+      grid-row: 4;
+      width: 100%;
+      height: 38px;
+      font-size: .82rem;
+      line-height: 1;
+    }
+
+    .home-control .move-right {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    .home-control .move-back {
+      grid-column: 2;
+      grid-row: 3;
     }
 
     .vignette {
@@ -401,10 +459,16 @@
 
       .caption {
         min-height: 86px;
+        bottom: 76px;
       }
 
       .progress {
         display: none;
+      }
+
+      .home-control {
+        right: 16px;
+        bottom: 18px;
       }
     }
 
@@ -448,6 +512,13 @@
     <b id="artTitle">전시장 입구</b>
     <span id="artMeta">밝은 베이지 톤의 가상 전시장에 명작 10점을 걸어두었습니다.</span>
   </aside>
+  <div class="home-control" aria-label="갤러리 이동">
+    <button class="move-forward" type="button" data-move="forward" aria-label="앞으로 이동" title="앞으로 이동">↑</button>
+    <button class="move-left" type="button" data-move="left" aria-label="왼쪽으로 이동" title="왼쪽으로 이동">←</button>
+    <button class="move-home" id="homeView" type="button" aria-label="원래 위치로 이동" title="원래 위치로 이동">원래 위치로 이동</button>
+    <button class="move-right" type="button" data-move="right" aria-label="오른쪽으로 이동" title="오른쪽으로 이동">→</button>
+    <button class="move-back" type="button" data-move="back" aria-label="뒤로 이동" title="뒤로 이동">↓</button>
+  </div>
   <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   <div class="vignette" aria-hidden="true"></div>
   <div class="loading" id="loading">갤러리 조명 조정 중</div>
@@ -469,7 +540,9 @@
     const metaEl = document.querySelector("#artMeta");
     const progressBar = document.querySelector("#progressBar");
     const resetView = document.querySelector("#resetView");
+    const homeView = document.querySelector("#homeView");
     const toolbar = document.querySelector(".toolbar");
+    const moveButtons = document.querySelectorAll("[data-move]");
     const musicPlayer = document.querySelector("#musicPlayer");
     const welcomeModal = document.querySelector("#welcomeModal");
     const welcomeClose = document.querySelector("#welcomeClose");
@@ -621,14 +694,23 @@
       visible: false,
       hideTimer: 0
     };
-    const target = {
+    const homePosition = {
       x: 0,
       y: 1.75,
       z: 2.8,
       yaw: 0,
       pitch: 0
     };
+    const target = { ...homePosition };
     const current = { ...target };
+    const lookDrag = {
+      active: false,
+      moved: false,
+      startX: 0,
+      startY: 0,
+      yaw: 0,
+      pitch: 0
+    };
     let hoveredArt = null;
     let viewingArt = null;
 
@@ -746,6 +828,13 @@
 
     function updateProgress() {
       progressBar.style.transform = `scaleX(${THREE.MathUtils.mapLinear(target.z, 3.2, -46.5, .18, 1)})`;
+    }
+
+    function returnHome() {
+      viewingArt = null;
+      Object.assign(target, homePosition);
+      updateCaption({ title: "전시장 입구", artist: "명작 10점을 밝은 베이지 톤의 가상 갤러리에 걸어두었습니다." });
+      updateProgress();
     }
 
     function registerSubject(mesh, subject) {
@@ -1251,7 +1340,7 @@
     }
 
     function isUiEvent(event) {
-      return !!event.target.closest?.(".toolbar, .welcome-modal, .caption, .progress");
+      return !!event.target.closest?.(".toolbar, .welcome-modal, .caption, .progress, .home-control");
     }
 
     function moveCharacterCursor(event) {
@@ -1282,13 +1371,43 @@
       pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
     }
 
-    function setPointerFromEvent(event) {
-      if (viewingArt || isUiEvent(event)) return;
-      setPointerCoordinates(event);
-      target.yaw = -pointer.x * .58;
-      target.pitch = -pointer.y * .22;
-      target.x = THREE.MathUtils.clamp(-pointer.x * 1.15, -1.7, 1.7);
-      target.y = THREE.MathUtils.clamp(1.75 - pointer.y * .42, 1.25, 2.35);
+    function updateLookDrag(event) {
+      if (!lookDrag.active || isUiEvent(event)) return;
+      const dx = event.clientX - lookDrag.startX;
+      const dy = event.clientY - lookDrag.startY;
+      if (Math.abs(dx) + Math.abs(dy) > 6) lookDrag.moved = true;
+      target.yaw = THREE.MathUtils.clamp(lookDrag.yaw - dx * .0045, -1.38, 1.38);
+      target.pitch = THREE.MathUtils.clamp(lookDrag.pitch - dy * .0032, -.42, .42);
+      viewingArt = null;
+    }
+
+    function moveViewer(direction) {
+      viewingArt = null;
+      const step = direction === "left" || direction === "right" ? .82 : 2.35;
+      const forwardX = Math.sin(target.yaw);
+      const forwardZ = -Math.cos(target.yaw);
+      const rightX = Math.cos(target.yaw);
+      const rightZ = Math.sin(target.yaw);
+      if (direction === "forward") {
+        target.x += forwardX * step;
+        target.z += forwardZ * step;
+      }
+      if (direction === "back") {
+        target.x -= forwardX * step;
+        target.z -= forwardZ * step;
+      }
+      if (direction === "left") {
+        target.x -= rightX * step;
+        target.z -= rightZ * step;
+      }
+      if (direction === "right") {
+        target.x += rightX * step;
+        target.z += rightZ * step;
+      }
+      target.x = THREE.MathUtils.clamp(target.x, -2.8, 2.8);
+      target.y = THREE.MathUtils.clamp(target.y, 1.35, 2.25);
+      target.z = THREE.MathUtils.clamp(target.z, -46.5, 3.2);
+      updateProgress();
     }
 
     function inspectArtwork(mesh) {
@@ -1359,9 +1478,10 @@
 
     window.addEventListener("pointermove", event => {
       moveCharacterCursor(event);
-      if (event.pointerType === "touch" || isUiEvent(event)) return;
-      setPointerFromEvent(event);
-      if (viewingArt) return;
+      if (isUiEvent(event)) return;
+      updateLookDrag(event);
+      if (event.pointerType === "touch" || viewingArt || lookDrag.active) return;
+      setPointerCoordinates(event);
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
       mount.style.cursor = hit ? "zoom-in" : "crosshair";
@@ -1390,8 +1510,16 @@
         moveCharacterCursor(event);
         hideCharacterCursorSoon();
       }
-      if (isUiEvent(event)) return;
+      if (isUiEvent(event)) {
+        lookDrag.active = false;
+        lookDrag.moved = false;
+        return;
+      }
       setPointerCoordinates(event);
+      const wasDragging = lookDrag.active && lookDrag.moved;
+      lookDrag.active = false;
+      lookDrag.moved = false;
+      if (wasDragging) return;
       if (viewingArt) {
         viewingArt = null;
         return;
@@ -1408,15 +1536,25 @@
       if (!isUiEvent(event)) {
         moveCharacterCursor(event);
         characterCursor?.classList.add("is-active");
+        lookDrag.active = true;
+        lookDrag.moved = false;
+        lookDrag.startX = event.clientX;
+        lookDrag.startY = event.clientY;
+        lookDrag.yaw = target.yaw;
+        lookDrag.pitch = target.pitch;
       }
     });
 
     window.addEventListener("pointerleave", () => {
+      lookDrag.active = false;
+      lookDrag.moved = false;
       cursorState.visible = false;
       characterCursor?.classList.remove("is-visible", "is-hovering", "is-active");
     });
 
     window.addEventListener("pointercancel", () => {
+      lookDrag.active = false;
+      lookDrag.moved = false;
       hideCharacterCursorSoon(180);
     });
 
@@ -1429,6 +1567,13 @@
 
     toolbar.addEventListener("click", event => {
       event.stopPropagation();
+    });
+
+    moveButtons.forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        moveViewer(button.dataset.move);
+      });
     });
 
     document.querySelectorAll("[data-music]").forEach(button => {
@@ -1466,12 +1611,8 @@
       if (shouldAutoPlay) musicPlayer.play().catch(() => {});
     });
 
-    resetView.addEventListener("click", () => {
-      viewingArt = null;
-      Object.assign(target, { x: 0, y: 1.75, z: 2.8, yaw: 0, pitch: 0 });
-      updateCaption({ title: "전시장 입구", artist: "명작 10점을 밝은 베이지 톤의 가상 갤러리에 걸어두었습니다." });
-      updateProgress();
-    });
+    resetView.addEventListener("click", returnHome);
+    homeView.addEventListener("click", returnHome);
 
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
