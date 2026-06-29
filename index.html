@@ -600,7 +600,8 @@
     const guestbookText = document.querySelector("#guestbookText");
     const guestbookList = document.querySelector("#guestbookList");
     const guestbookClose = document.querySelector("#guestbookClose");
-    const guestbookKey = "grhs-gallery-guestbook";
+    const guestbookSubmit = document.querySelector("#guestbookSubmit");
+    const guestbookEndpoint = "https://script.google.com/macros/s/AKfycbyTdaNVB1gp0iKMoLZuR6uXsef4vCFDhf_eg6y7bMztQtKByw63eroQhkFht-1c3Lld/exec";
     const playlist = [
       "assets/audio/danseuses-de-delphes.mp3",
       "assets/audio/voiles.mp3",
@@ -654,20 +655,7 @@
       guideModal.classList.remove("is-hidden");
     }
 
-    function readGuestbook() {
-      try {
-        return JSON.parse(localStorage.getItem(guestbookKey) || "[]");
-      } catch {
-        return [];
-      }
-    }
-
-    function writeGuestbook(entries) {
-      localStorage.setItem(guestbookKey, JSON.stringify(entries.slice(0, 24)));
-    }
-
-    function renderGuestbook() {
-      const entries = readGuestbook();
+    function renderGuestbook(entries = []) {
       guestbookList.replaceChildren();
       if (!entries.length) {
         const empty = document.createElement("div");
@@ -684,9 +672,48 @@
       });
     }
 
+    function renderGuestbookMessage(message) {
+      guestbookList.replaceChildren();
+      const item = document.createElement("div");
+      item.className = "guestbook-empty";
+      item.textContent = message;
+      guestbookList.appendChild(item);
+    }
+
+    async function loadGuestbook() {
+      renderGuestbookMessage("한줄평을 불러오는 중입니다.");
+      try {
+        const response = await fetch(`${guestbookEndpoint}?t=${Date.now()}`, { cache: "no-store" });
+        const entries = await response.json();
+        renderGuestbook(Array.isArray(entries) ? entries : []);
+      } catch {
+        renderGuestbookMessage("한줄평을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    }
+
+    async function submitGuestbook(text) {
+      guestbookSubmit.disabled = true;
+      guestbookSubmit.textContent = "저장 중";
+      try {
+        await fetch(guestbookEndpoint, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ text })
+        });
+        guestbookText.value = "";
+        await loadGuestbook();
+      } catch {
+        renderGuestbookMessage("한줄평을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.");
+      } finally {
+        guestbookSubmit.disabled = false;
+        guestbookSubmit.textContent = "남기기";
+      }
+    }
+
     function openGuestbook(event) {
       consumeModalEvent(event);
-      renderGuestbook();
+      loadGuestbook();
       guestbookModal.classList.remove("is-hidden");
       window.setTimeout(() => guestbookText.focus(), 30);
     }
@@ -718,11 +745,7 @@
       event.stopPropagation();
       const text = guestbookText.value.trim().replace(/\s+/g, " ");
       if (!text) return;
-      const entries = readGuestbook();
-      entries.unshift({ text, at: Date.now() });
-      writeGuestbook(entries);
-      guestbookText.value = "";
-      renderGuestbook();
+      submitGuestbook(text);
     });
 
     const artworks = [
