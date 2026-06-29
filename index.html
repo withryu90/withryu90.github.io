@@ -203,57 +203,17 @@
       right: clamp(16px, 3vw, 32px);
       bottom: clamp(18px, 4vw, 42px);
       z-index: 4;
-      display: grid;
-      grid-template-columns: repeat(3, 42px);
-      grid-template-rows: repeat(3, 42px) 38px;
-      gap: 7px;
-      padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 250, 241, .72);
-      box-shadow: 0 22px 60px rgba(76, 59, 40, .16);
-      backdrop-filter: blur(18px);
       pointer-events: auto;
     }
 
     .home-control button {
-      width: 42px;
-      min-width: 0;
+      width: auto;
+      min-width: 138px;
       height: 42px;
-      padding: 0;
-      background: rgba(255, 255, 255, .62);
-      font-size: 1rem;
+      padding: 0 16px;
+      font-size: .92rem;
       font-weight: 650;
       white-space: nowrap;
-    }
-
-    .home-control .move-forward {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
-    .home-control .move-left {
-      grid-column: 1;
-      grid-row: 2;
-    }
-
-    .home-control .move-home {
-      grid-column: 1 / 4;
-      grid-row: 4;
-      width: 100%;
-      height: 38px;
-      font-size: .82rem;
-      line-height: 1;
-    }
-
-    .home-control .move-right {
-      grid-column: 3;
-      grid-row: 2;
-    }
-
-    .home-control .move-back {
-      grid-column: 2;
-      grid-row: 3;
     }
 
     .vignette {
@@ -512,12 +472,8 @@
     <b id="artTitle">전시장 입구</b>
     <span id="artMeta">밝은 베이지 톤의 가상 전시장에 명작 10점을 걸어두었습니다.</span>
   </aside>
-  <div class="home-control" aria-label="갤러리 이동">
-    <button class="move-forward" type="button" data-move="forward" aria-label="앞으로 이동" title="앞으로 이동">↑</button>
-    <button class="move-left" type="button" data-move="left" aria-label="왼쪽으로 이동" title="왼쪽으로 이동">←</button>
-    <button class="move-home" id="homeView" type="button" aria-label="원래 위치로 이동" title="원래 위치로 이동">원래 위치로 이동</button>
-    <button class="move-right" type="button" data-move="right" aria-label="오른쪽으로 이동" title="오른쪽으로 이동">→</button>
-    <button class="move-back" type="button" data-move="back" aria-label="뒤로 이동" title="뒤로 이동">↓</button>
+  <div class="home-control">
+    <button id="homeView" type="button">원래 위치로 이동</button>
   </div>
   <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   <div class="vignette" aria-hidden="true"></div>
@@ -542,7 +498,6 @@
     const resetView = document.querySelector("#resetView");
     const homeView = document.querySelector("#homeView");
     const toolbar = document.querySelector(".toolbar");
-    const moveButtons = document.querySelectorAll("[data-move]");
     const musicPlayer = document.querySelector("#musicPlayer");
     const welcomeModal = document.querySelector("#welcomeModal");
     const welcomeClose = document.querySelector("#welcomeClose");
@@ -1381,35 +1336,6 @@
       viewingArt = null;
     }
 
-    function moveViewer(direction) {
-      viewingArt = null;
-      const step = direction === "left" || direction === "right" ? .82 : 2.35;
-      const forwardX = Math.sin(target.yaw);
-      const forwardZ = -Math.cos(target.yaw);
-      const rightX = Math.cos(target.yaw);
-      const rightZ = Math.sin(target.yaw);
-      if (direction === "forward") {
-        target.x += forwardX * step;
-        target.z += forwardZ * step;
-      }
-      if (direction === "back") {
-        target.x -= forwardX * step;
-        target.z -= forwardZ * step;
-      }
-      if (direction === "left") {
-        target.x -= rightX * step;
-        target.z -= rightZ * step;
-      }
-      if (direction === "right") {
-        target.x += rightX * step;
-        target.z += rightZ * step;
-      }
-      target.x = THREE.MathUtils.clamp(target.x, -2.8, 2.8);
-      target.y = THREE.MathUtils.clamp(target.y, 1.35, 2.25);
-      target.z = THREE.MathUtils.clamp(target.z, -46.5, 3.2);
-      updateProgress();
-    }
-
     function inspectArtwork(mesh) {
       const art = mesh.userData.art;
       viewingArt = mesh;
@@ -1567,13 +1493,6 @@
 
     toolbar.addEventListener("click", event => {
       event.stopPropagation();
-    });
-
-    moveButtons.forEach(button => {
-      button.addEventListener("click", event => {
-        event.stopPropagation();
-        moveViewer(button.dataset.move);
-      });
     });
 
     document.querySelectorAll("[data-music]").forEach(button => {
