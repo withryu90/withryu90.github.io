@@ -1285,10 +1285,10 @@
     function setPointerFromEvent(event) {
       if (viewingArt || isUiEvent(event)) return;
       setPointerCoordinates(event);
-      target.yaw = pointer.x * .58;
-      target.pitch = pointer.y * .22;
-      target.x = THREE.MathUtils.clamp(pointer.x * 1.15, -1.7, 1.7);
-      target.y = THREE.MathUtils.clamp(1.75 + pointer.y * .42, 1.25, 2.35);
+      target.yaw = -pointer.x * .58;
+      target.pitch = -pointer.y * .22;
+      target.x = THREE.MathUtils.clamp(-pointer.x * 1.15, -1.7, 1.7);
+      target.y = THREE.MathUtils.clamp(1.75 - pointer.y * .42, 1.25, 2.35);
     }
 
     function inspectArtwork(mesh) {
@@ -1302,7 +1302,7 @@
       } else {
         target.x = art.side === "left" ? -2.75 : 2.75;
         target.z = art.z + .2;
-        target.yaw = art.side === "left" ? -1.18 : 1.18;
+        target.yaw = art.side === "left" ? 1.18 : -1.18;
       }
       target.pitch = 0;
       target.y = 1.85;
@@ -1323,10 +1323,10 @@
       const z = THREE.MathUtils.clamp(point.z, -46.5, 3.2);
       const x = THREE.MathUtils.clamp(point.x, -1.7, 1.7);
       if (subject.surface === "leftWall") {
-        return { x: -2.75, y: 1.82, z, yaw: -1.18, pitch: point.y > 5 ? .22 : 0 };
+        return { x: -2.75, y: 1.82, z, yaw: 1.18, pitch: point.y > 5 ? .22 : 0 };
       }
       if (subject.surface === "rightWall") {
-        return { x: 2.75, y: 1.82, z, yaw: 1.18, pitch: point.y > 5 ? .22 : 0 };
+        return { x: 2.75, y: 1.82, z, yaw: -1.18, pitch: point.y > 5 ? .22 : 0 };
       }
       if (subject.surface === "endWall") {
         return { x, y: 1.82, z: -46.2, yaw: 0, pitch: 0 };
@@ -1342,7 +1342,7 @@
         x: THREE.MathUtils.clamp(point.x - side * .8, -1.7, 1.7),
         y: 1.72,
         z: THREE.MathUtils.clamp(point.z + .95, -46.5, 3.2),
-        yaw: side * .36,
+        yaw: -side * .36,
         pitch: 0
       };
     }
