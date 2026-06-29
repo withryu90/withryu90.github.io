@@ -223,6 +223,111 @@
       visibility: hidden;
     }
 
+    .character-cursor {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 30;
+      width: 58px;
+      height: 58px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate3d(-120px, -120px, 0);
+      transition: opacity .18s ease;
+      will-change: transform, opacity;
+    }
+
+    .character-cursor.is-visible {
+      opacity: 1;
+    }
+
+    .character-cursor.is-hovering {
+      width: 64px;
+      height: 64px;
+    }
+
+    .character-cursor img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform-origin: 54% 68%;
+      filter: drop-shadow(0 8px 12px rgba(54, 42, 30, .24));
+      animation: cursor-flutter .72s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .character-cursor::before,
+    .character-cursor::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      border-radius: 999px;
+      opacity: .8;
+    }
+
+    .character-cursor::before {
+      width: 7px;
+      height: 7px;
+      left: 7px;
+      top: 12px;
+      background: #8fbf50;
+      box-shadow: -7px 9px 0 #8fbf50, 8px -5px 0 #b2d56a;
+      animation: cursor-spark .9s ease-in-out infinite;
+    }
+
+    .character-cursor::after {
+      right: 5px;
+      top: 17px;
+      width: 12px;
+      height: 18px;
+      border: 3px solid rgba(116, 169, 58, .86);
+      border-left: 0;
+      transform-origin: left center;
+      animation: cursor-wing .3s ease-in-out infinite alternate;
+    }
+
+    .character-cursor.is-active img {
+      animation-duration: .34s;
+    }
+
+    @keyframes cursor-flutter {
+      0%,
+      100% {
+        transform: translateY(0) rotate(-5deg) scale(1);
+      }
+
+      45% {
+        transform: translateY(-5px) rotate(5deg) scale(1.035, .975);
+      }
+
+      70% {
+        transform: translateY(-2px) rotate(-2deg) scale(.99, 1.025);
+      }
+    }
+
+    @keyframes cursor-wing {
+      from {
+        transform: rotate(-18deg) scaleX(.72);
+      }
+
+      to {
+        transform: rotate(16deg) scaleX(1.08);
+      }
+    }
+
+    @keyframes cursor-spark {
+      0%,
+      100% {
+        opacity: .35;
+        transform: translateY(2px) scale(.85);
+      }
+
+      50% {
+        opacity: .9;
+        transform: translateY(-1px) scale(1);
+      }
+    }
+
     .welcome-modal {
       position: fixed;
       inset: 0;
@@ -302,10 +407,34 @@
         display: none;
       }
     }
+
+    @media (hover: hover) and (pointer: fine) {
+      html,
+      body,
+      #gallery,
+      button {
+        cursor: none;
+      }
+    }
+
+    @media (pointer: coarse), (max-width: 760px) {
+      .character-cursor {
+        width: 48px;
+        height: 48px;
+      }
+
+      .character-cursor.is-hovering {
+        width: 52px;
+        height: 52px;
+      }
+    }
   </style>
 </head>
 <body>
   <main id="gallery" aria-label="3D 명화 갤러리"></main>
+  <div class="character-cursor" id="characterCursor" aria-hidden="true">
+    <img src="assets/cursor/gallery-character.png" alt="" />
+  </div>
   <div class="topbar">
     <h2>GRHS ART SPACE</h2>
     <div class="toolbar">
@@ -335,6 +464,7 @@
   (() => {
     const mount = document.querySelector("#gallery");
     const loading = document.querySelector("#loading");
+    const characterCursor = document.querySelector("#characterCursor");
     const titleEl = document.querySelector("#artTitle");
     const metaEl = document.querySelector("#artMeta");
     const progressBar = document.querySelector("#progressBar");
@@ -483,6 +613,14 @@
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     const interactive = [];
+    const cursorState = {
+      x: -120,
+      y: -120,
+      targetX: -120,
+      targetY: -120,
+      visible: false,
+      hideTimer: 0
+    };
     const target = {
       x: 0,
       y: 1.75,
@@ -1116,6 +1254,29 @@
       return !!event.target.closest?.(".toolbar, .welcome-modal, .caption, .progress");
     }
 
+    function moveCharacterCursor(event) {
+      if (!characterCursor) return;
+      const isTouch = event.pointerType === "touch";
+      window.clearTimeout(cursorState.hideTimer);
+      cursorState.targetX = event.clientX + (isTouch ? -24 : 8);
+      cursorState.targetY = event.clientY + (isTouch ? -58 : 10);
+      if (!cursorState.visible) {
+        cursorState.x = cursorState.targetX;
+        cursorState.y = cursorState.targetY;
+        cursorState.visible = true;
+        characterCursor.classList.add("is-visible");
+      }
+    }
+
+    function hideCharacterCursorSoon(delay = 520) {
+      if (!characterCursor) return;
+      window.clearTimeout(cursorState.hideTimer);
+      cursorState.hideTimer = window.setTimeout(() => {
+        cursorState.visible = false;
+        characterCursor.classList.remove("is-visible", "is-hovering", "is-active");
+      }, delay);
+    }
+
     function setPointerCoordinates(event) {
       pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1197,12 +1358,14 @@
     }
 
     window.addEventListener("pointermove", event => {
+      moveCharacterCursor(event);
       if (event.pointerType === "touch" || isUiEvent(event)) return;
       setPointerFromEvent(event);
       if (viewingArt) return;
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
       mount.style.cursor = hit ? "zoom-in" : "crosshair";
+      characterCursor?.classList.toggle("is-hovering", !!hit);
       if (hit?.userData.kind === "person") {
         if (hit !== hoveredArt) {
           hoveredArt = hit;
@@ -1222,6 +1385,11 @@
     });
 
     window.addEventListener("pointerup", event => {
+      characterCursor?.classList.remove("is-active");
+      if (event.pointerType === "touch") {
+        moveCharacterCursor(event);
+        hideCharacterCursorSoon();
+      }
       if (isUiEvent(event)) return;
       setPointerCoordinates(event);
       if (viewingArt) {
@@ -1234,6 +1402,22 @@
       if (mesh?.userData.kind === "person") inspectPerson(mesh);
       else if (mesh?.userData.kind === "art") inspectArtwork(mesh);
       else if (mesh?.userData.kind === "subject") inspectSubject(mesh, hit.point);
+    });
+
+    window.addEventListener("pointerdown", event => {
+      if (!isUiEvent(event)) {
+        moveCharacterCursor(event);
+        characterCursor?.classList.add("is-active");
+      }
+    });
+
+    window.addEventListener("pointerleave", () => {
+      cursorState.visible = false;
+      characterCursor?.classList.remove("is-visible", "is-hovering", "is-active");
+    });
+
+    window.addEventListener("pointercancel", () => {
+      hideCharacterCursorSoon(180);
     });
 
     window.addEventListener("wheel", event => {
@@ -1306,6 +1490,12 @@
       current.z = THREE.MathUtils.lerp(current.z, target.z, .055);
       current.yaw = THREE.MathUtils.lerp(current.yaw, target.yaw, .06);
       current.pitch = THREE.MathUtils.lerp(current.pitch, target.pitch, .06);
+
+      cursorState.x = THREE.MathUtils.lerp(cursorState.x, cursorState.targetX, .38);
+      cursorState.y = THREE.MathUtils.lerp(cursorState.y, cursorState.targetY, .38);
+      if (characterCursor && cursorState.visible) {
+        characterCursor.style.transform = `translate3d(${cursorState.x}px, ${cursorState.y}px, 0)`;
+      }
 
       camera.position.set(current.x, current.y, current.z);
       camera.rotation.order = "YXZ";
