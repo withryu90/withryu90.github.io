@@ -221,6 +221,49 @@
       visibility: hidden;
     }
 
+    .welcome-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(244, 245, 242, .72);
+      backdrop-filter: blur(16px);
+    }
+
+    .welcome-modal.is-hidden {
+      display: none;
+    }
+
+    .welcome-panel {
+      width: min(560px, calc(100vw - 32px));
+      padding: clamp(24px, 5vw, 42px);
+      border: 1px solid rgba(41, 36, 31, .16);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, .94);
+      box-shadow: 0 26px 80px rgba(40, 35, 28, .18);
+      text-align: center;
+    }
+
+    .welcome-panel p {
+      margin: 0;
+      font-size: clamp(1.08rem, 2.6vw, 1.45rem);
+      line-height: 1.65;
+      word-break: keep-all;
+      color: var(--ink);
+    }
+
+    .welcome-panel button {
+      width: auto;
+      min-width: 92px;
+      height: 42px;
+      margin-top: 24px;
+      padding: 0 18px;
+      font-size: .95rem;
+      font-family: inherit;
+    }
+
     .music-player {
       position: fixed;
       width: 1px;
@@ -277,6 +320,12 @@
   <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   <div class="vignette" aria-hidden="true"></div>
   <div class="loading" id="loading">갤러리 조명 조정 중</div>
+  <div class="welcome-modal" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeText">
+    <div class="welcome-panel">
+      <p id="welcomeText">계룡고등학교 음악X미술 프로젝트<br>'인상, 표현, 미니멀리즘의 점·선·색 변주곡'을 위한<br>갤러리에 오신 것을 환영합니다.</p>
+      <button id="welcomeClose" type="button">입장</button>
+    </div>
+  </div>
   <audio id="musicPlayer" class="music-player" preload="auto" autoplay></audio>
 
   <script src="./assets/vendor/three.global.js"></script>
@@ -290,6 +339,8 @@
     const resetView = document.querySelector("#resetView");
     const toolbar = document.querySelector(".toolbar");
     const musicPlayer = document.querySelector("#musicPlayer");
+    const welcomeModal = document.querySelector("#welcomeModal");
+    const welcomeClose = document.querySelector("#welcomeClose");
     const playlist = [
       "assets/audio/danseuses-de-delphes.mp3",
       "assets/audio/voiles.mp3",
@@ -300,6 +351,12 @@
     let trackIndex = 0;
     let shouldAutoPlay = true;
     musicPlayer.src = playlist[trackIndex];
+
+    welcomeClose.addEventListener("click", event => {
+      event.stopPropagation();
+      welcomeModal.classList.add("is-hidden");
+      startBackgroundMusic();
+    });
 
     const artworks = [
       {
@@ -501,6 +558,11 @@
       color: "#d8b38d",
       roughness: .78
     });
+    const hitboxMaterial = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    });
     const glassMaterial = new THREE.MeshPhysicalMaterial({
       color: "#eaf7ff",
       metalness: 0,
@@ -543,38 +605,38 @@
     }
 
     addBox(10, .16, 56, 0, 0, -23, floorMaterial);
-    addBox(.2, 4.25, 56, -5, 2.05, -23, wallMaterial);
-    addBox(.2, 4.25, 56, 5, 2.05, -23, wallMaterial);
-    addBox(10, 4.25, .2, 0, 2.05, -50.8, wallMaterial);
+    addBox(.2, 8.5, 56, -5, 4.18, -23, wallMaterial);
+    addBox(.2, 8.5, 56, 5, 4.18, -23, wallMaterial);
+    addBox(10, 8.5, .2, 0, 4.18, -50.8, wallMaterial);
     addBox(.16, .16, 56, -4.88, .16, -23, trimMaterial);
     addBox(.16, .16, 56, 4.88, .16, -23, trimMaterial);
-    addBox(.16, .16, 56, -4.88, 4.08, -23, trimMaterial);
-    addBox(.16, .16, 56, 4.88, 4.08, -23, trimMaterial);
+    addBox(.16, .16, 56, -4.88, 8.33, -23, trimMaterial);
+    addBox(.16, .16, 56, 4.88, 8.33, -23, trimMaterial);
 
     const sky = new THREE.Mesh(
       new THREE.PlaneGeometry(14, 64),
       new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide })
     );
     sky.rotation.x = -Math.PI / 2;
-    sky.position.set(0, 4.92, -23);
+    sky.position.set(0, 9.2, -23);
     world.add(sky);
 
     const glassRoof = new THREE.Mesh(new THREE.PlaneGeometry(9.2, 54), glassMaterial);
     glassRoof.rotation.x = -Math.PI / 2;
-    glassRoof.position.set(0, 4.22, -23);
+    glassRoof.position.set(0, 8.5, -23);
     glassRoof.receiveShadow = true;
     world.add(glassRoof);
 
     for (let z = -48; z <= 2; z += 6) {
-      addBox(9.35, .08, .08, 0, 4.28, z, trimMaterial);
+      addBox(9.35, .08, .08, 0, 8.56, z, trimMaterial);
     }
-    addBox(.1, .1, 54, -4.65, 4.29, -23, trimMaterial);
-    addBox(.1, .1, 54, 4.65, 4.29, -23, trimMaterial);
+    addBox(.1, .1, 54, -4.65, 8.57, -23, trimMaterial);
+    addBox(.1, .1, 54, 4.65, 8.57, -23, trimMaterial);
 
     scene.add(new THREE.HemisphereLight("#ffffff", "#d9c7aa", 1.85));
 
     const sun = new THREE.DirectionalLight("#ffffff", 2.6);
-    sun.position.set(-3.5, 8.8, 1.5);
+    sun.position.set(-3.5, 13.2, 1.5);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 1;
@@ -587,9 +649,8 @@
 
     for (let z = -4; z > -49; z -= 6) {
       const glow = new THREE.PointLight("#ffffff", .76, 12, 2.1);
-      glow.position.set(0, 3.75, z);
+      glow.position.set(0, 7.6, z);
       world.add(glow);
-      addBox(1.7, .05, .16, 0, 4.02, z, trimMaterial);
     }
 
     function fallbackArtworkTexture(art) {
@@ -715,6 +776,14 @@
     addBox(.24, .6, .24, -1.25, .28, -35.5, benchMaterial);
     addBox(.24, .6, .24, 1.25, .28, -35.5, benchMaterial);
 
+    function addPersonHitbox(group, size, position, person) {
+      const hitbox = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), hitboxMaterial);
+      hitbox.position.set(position.x, position.y, position.z);
+      hitbox.userData = { kind: "person", person };
+      group.add(hitbox);
+      interactive.push(hitbox);
+    }
+
     function addSeatedVisitor() {
       const group = new THREE.Group();
       group.position.set(0, .64, -14.88);
@@ -770,23 +839,22 @@
       hair.castShadow = true;
       group.add(hair);
 
-      [-.16, -.07, .03, .12].forEach((x, index) => {
-        const tuft = new THREE.Mesh(new THREE.ConeGeometry(.055, .18, 8), hairMaterial);
-        tuft.position.set(x, 1.41 + (index % 2) * .02, .06);
-        tuft.rotation.z = -x * 2.4;
-        tuft.rotation.x = .28;
+      [-.15, -.06, .04, .13].forEach((x, index) => {
+        const tuft = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 8), hairMaterial);
+        tuft.position.set(x, 1.38 + (index % 2) * .018, .04);
+        tuft.scale.set(1.1, .55, .75);
         tuft.castShadow = true;
         group.add(tuft);
       });
 
-      [-.075, .075].forEach(x => {
-        const lens = new THREE.Mesh(new THREE.TorusGeometry(.055, .007, 8, 18), glassesMaterial);
-        lens.position.set(x, 1.18, .205);
+      [-.078, .078].forEach(x => {
+        const lens = new THREE.Mesh(new THREE.TorusGeometry(.064, .009, 8, 22), glassesMaterial);
+        lens.position.set(x, 1.18, .218);
         lens.rotation.x = Math.PI / 2;
         group.add(lens);
       });
-      const bridge = new THREE.Mesh(new THREE.BoxGeometry(.055, .01, .012), glassesMaterial);
-      bridge.position.set(0, 1.18, .205);
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(.064, .012, .014), glassesMaterial);
+      bridge.position.set(0, 1.18, .218);
       group.add(bridge);
 
       const armGeometry = new THREE.CylinderGeometry(.045, .055, .54, 12);
@@ -854,6 +922,17 @@
       rightShoe.position.set(.16, -.38, .69);
       rightShoe.castShadow = true;
       group.add(rightShoe);
+
+      addPersonHitbox(
+        group,
+        { x: 1.05, y: 1.75, z: .85 },
+        { x: 0, y: .62, z: .2 },
+        {
+          title: "벤치의 관람객",
+          artist: "가까이 다가가 옆에서 함께 감상합니다.",
+          view: { x: .78, y: 1.68, z: -13.95, yaw: -.32, pitch: -.04 }
+        }
+      );
 
       world.add(group);
     }
@@ -987,6 +1066,24 @@
         });
       }
 
+      const side = person.x >= 0 ? 1 : -1;
+      addPersonHitbox(
+        group,
+        { x: .75, y: 1.9, z: .75 },
+        { x: 0, y: .95, z: 0 },
+        {
+          title: "관람객",
+          artist: "작품을 바라보는 인물 옆에 섰습니다.",
+          view: {
+            x: person.x - side * .85,
+            y: 1.72,
+            z: person.z + .55,
+            yaw: side * .62,
+            pitch: 0
+          }
+        }
+      );
+
       world.add(group);
     }
 
@@ -1032,13 +1129,28 @@
       mount.style.cursor = "default";
     }
 
+    function inspectPerson(mesh) {
+      const person = mesh.userData.person;
+      viewingArt = mesh;
+      updateCaption(person);
+      Object.assign(target, person.view);
+      mount.style.cursor = "default";
+    }
+
     window.addEventListener("pointermove", event => {
       setPointerFromEvent(event);
       if (viewingArt) return;
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
       mount.style.cursor = hit ? "zoom-in" : "crosshair";
-      if (hit && hit !== hoveredArt) {
+      if (hit?.userData.kind === "person") {
+        if (hit !== hoveredArt) {
+          hoveredArt = hit;
+          updateCaption(hit.userData.person);
+        }
+        return;
+      }
+      if (hit && hit !== hoveredArt && hit.userData.art) {
         hoveredArt = hit;
         updateCaption(hit.userData.art);
       }
@@ -1052,7 +1164,8 @@
       }
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
-      if (hit) inspectArtwork(hit);
+      if (hit?.userData.kind === "person") inspectPerson(hit);
+      else if (hit) inspectArtwork(hit);
     });
 
     window.addEventListener("wheel", event => {
