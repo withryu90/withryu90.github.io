@@ -687,7 +687,8 @@
       y: 1.75,
       z: 2.8,
       yaw: 0,
-      pitch: 0
+      pitch: 0,
+      fov: 58
     };
     const target = { ...homePosition };
     const current = { ...target };
@@ -698,6 +699,19 @@
       startY: 0,
       yaw: 0,
       pitch: 0
+    };
+    const touchGesture = {
+      active: false,
+      startDistance: 0,
+      startCenterX: 0,
+      startCenterY: 0,
+      yaw: 0,
+      pitch: 0,
+      fov: homePosition.fov
+    };
+    const safariGesture = {
+      active: false,
+      fov: homePosition.fov
     };
     let hoveredArt = null;
     let viewingArt = null;
@@ -816,6 +830,26 @@
 
     function updateProgress() {
       progressBar.style.transform = `scaleX(${THREE.MathUtils.mapLinear(target.z, 3.2, -46.5, .18, 1)})`;
+    }
+
+    function setZoomFov(fov) {
+      target.fov = THREE.MathUtils.clamp(fov, 8, 145);
+    }
+
+    function zoomByWheel(deltaY) {
+      setZoomFov(target.fov + deltaY * .07);
+    }
+
+    function getTouchMetrics(touches) {
+      const first = touches[0];
+      const second = touches[1];
+      const dx = second.clientX - first.clientX;
+      const dy = second.clientY - first.clientY;
+      return {
+        distance: Math.hypot(dx, dy),
+        centerX: (first.clientX + second.clientX) / 2,
+        centerY: (first.clientY + second.clientY) / 2
+      };
     }
 
     function returnHome() {
@@ -1517,11 +1551,68 @@
       hideCharacterCursorSoon(180);
     });
 
+    window.addEventListener("touchstart", event => {
+      if (isUiEvent(event) || event.touches.length !== 2) return;
+      event.preventDefault();
+      const metrics = getTouchMetrics(event.touches);
+      touchGesture.active = true;
+      touchGesture.startDistance = metrics.distance;
+      touchGesture.startCenterX = metrics.centerX;
+      touchGesture.startCenterY = metrics.centerY;
+      touchGesture.yaw = target.yaw;
+      touchGesture.pitch = target.pitch;
+      touchGesture.fov = target.fov;
+      lookDrag.active = false;
+      lookDrag.moved = true;
+      viewingArt = null;
+    }, { passive: false });
+
+    window.addEventListener("touchmove", event => {
+      if (!touchGesture.active || event.touches.length !== 2 || isUiEvent(event)) return;
+      event.preventDefault();
+      const metrics = getTouchMetrics(event.touches);
+      const centerDx = metrics.centerX - touchGesture.startCenterX;
+      const centerDy = metrics.centerY - touchGesture.startCenterY;
+      const distanceRatio = touchGesture.startDistance / Math.max(metrics.distance, 1);
+      const zoomRatio = Math.pow(distanceRatio, 2.45);
+      target.yaw = THREE.MathUtils.clamp(touchGesture.yaw - centerDx * .0048, -1.38, 1.38);
+      target.pitch = THREE.MathUtils.clamp(touchGesture.pitch - centerDy * .003, -.42, .42);
+      setZoomFov(touchGesture.fov * zoomRatio);
+    }, { passive: false });
+
+    window.addEventListener("touchend", event => {
+      if (event.touches.length < 2) {
+        touchGesture.active = false;
+      }
+    });
+
+    window.addEventListener("gesturestart", event => {
+      event.preventDefault();
+      safariGesture.active = true;
+      safariGesture.fov = target.fov;
+      viewingArt = null;
+    }, { passive: false });
+
+    window.addEventListener("gesturechange", event => {
+      if (!safariGesture.active) return;
+      event.preventDefault();
+      const scale = Math.max(event.scale, .1);
+      const zoomRatio = 1 / Math.pow(scale, 3.2);
+      setZoomFov(safariGesture.fov * zoomRatio);
+    }, { passive: false });
+
+    window.addEventListener("gestureend", () => {
+      safariGesture.active = false;
+    });
+
     window.addEventListener("wheel", event => {
       event.preventDefault();
       viewingArt = null;
-      target.z = THREE.MathUtils.clamp(target.z - event.deltaY * .012, -46.5, 3.2);
-      updateProgress();
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.15) {
+        target.yaw = THREE.MathUtils.clamp(target.yaw - event.deltaX * .006, -1.38, 1.38);
+        return;
+      }
+      zoomByWheel(event.deltaY);
     }, { passive: false });
 
     toolbar.addEventListener("click", event => {
@@ -1583,6 +1674,7 @@
       current.z = THREE.MathUtils.lerp(current.z, target.z, .055);
       current.yaw = THREE.MathUtils.lerp(current.yaw, target.yaw, .06);
       current.pitch = THREE.MathUtils.lerp(current.pitch, target.pitch, .06);
+      current.fov = THREE.MathUtils.lerp(current.fov, target.fov, .18);
 
       cursorState.x = THREE.MathUtils.lerp(cursorState.x, cursorState.targetX, .38);
       cursorState.y = THREE.MathUtils.lerp(cursorState.y, cursorState.targetY, .38);
@@ -1594,6 +1686,10 @@
       camera.rotation.order = "YXZ";
       camera.rotation.y = current.yaw;
       camera.rotation.x = current.pitch;
+      if (Math.abs(camera.fov - current.fov) > .02) {
+        camera.fov = current.fov;
+        camera.updateProjectionMatrix();
+      }
 
       renderer.render(scene, camera);
     }
