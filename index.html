@@ -144,6 +144,9 @@
       backdrop-filter: blur(18px);
       box-shadow: 0 12px 28px rgba(62, 47, 33, .08);
       cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     button:hover {
@@ -627,20 +630,36 @@
       lookDrag.moved = false;
     }
 
+    const instantButtonLocks = new WeakMap();
+
+    function runInstantButton(button, event, action) {
+      if (!button || button.disabled) return;
+      const now = performance.now();
+      const lastRun = instantButtonLocks.get(button) || 0;
+      if (now - lastRun < 220) {
+        consumeModalEvent(event);
+        return;
+      }
+      instantButtonLocks.set(button, now);
+      action(event);
+    }
+
     function bindInstantButton(button, action) {
-      ["pointerdown", "pointerup", "mousedown", "mouseup", "touchstart", "touchend", "click"].forEach(eventName => {
-        button.addEventListener(eventName, action);
+      ["pointerdown", "touchstart", "mousedown", "click"].forEach(eventName => {
+        button.addEventListener(eventName, event => runInstantButton(button, event, action), { passive: false });
       });
     }
 
-    function handleModalButtonCapture(event) {
-      const button = event.target.closest?.("#welcomeClose, #guestbookView, #guestbookClose, #guideView, #guideClose");
+    function handleInstantButtonCapture(event) {
+      const button = event.target.closest?.("button");
       if (!button) return;
-      if (button.id === "welcomeClose") enterGallery(event);
-      if (button.id === "guestbookView") openGuestbook(event);
-      if (button.id === "guestbookClose") closeGuestbook(event);
-      if (button.id === "guideView") openGuide(event);
-      if (button.id === "guideClose") closeGuide(event);
+      if (button.id === "welcomeClose") runInstantButton(button, event, enterGallery);
+      else if (button.id === "guestbookView") runInstantButton(button, event, openGuestbook);
+      else if (button.id === "guestbookClose") runInstantButton(button, event, closeGuestbook);
+      else if (button.id === "guideView") runInstantButton(button, event, openGuide);
+      else if (button.id === "guideClose") runInstantButton(button, event, closeGuide);
+      else if (button.id === "homeView" || button.id === "resetView") runInstantButton(button, event, returnHomeFromButton);
+      else if (button.dataset.music) runInstantButton(button, event, controlMusicFromButton);
     }
 
     function enterGallery(event) {
@@ -730,14 +749,38 @@
       guideModal.classList.add("is-hidden");
     }
 
+    function returnHomeFromButton(event) {
+      consumeModalEvent(event);
+      returnHome();
+    }
+
+    function controlMusicFromButton(event) {
+      consumeModalEvent(event);
+      const button = event.currentTarget?.dataset?.music ? event.currentTarget : event.target.closest?.("[data-music]");
+      if (!button) return;
+      if (button.dataset.music === "play") {
+        shouldAutoPlay = true;
+        startBackgroundMusic();
+      }
+      if (button.dataset.music === "pause") {
+        shouldAutoPlay = false;
+        musicPlayer.pause();
+      }
+      if (button.dataset.music === "stop") {
+        shouldAutoPlay = false;
+        musicPlayer.pause();
+        musicPlayer.currentTime = 0;
+      }
+    }
+
     bindInstantButton(welcomeClose, enterGallery);
     bindInstantButton(guestbookView, openGuestbook);
     bindInstantButton(guideView, openGuide);
     bindInstantButton(guideClose, closeGuide);
     bindInstantButton(guestbookClose, closeGuestbook);
 
-    ["pointerdown", "touchstart", "click"].forEach(eventName => {
-      document.addEventListener(eventName, handleModalButtonCapture, true);
+    ["pointerdown", "touchstart", "mousedown", "click"].forEach(eventName => {
+      document.addEventListener(eventName, handleInstantButtonCapture, { capture: true, passive: false });
     });
 
     guestbookForm.addEventListener("submit", event => {
@@ -906,6 +949,7 @@
     };
     let hoveredArt = null;
     let viewingArt = null;
+    const animatedNpcs = [];
 
     function makeTexture(draw) {
       const canvas = document.createElement("canvas");
@@ -996,6 +1040,21 @@
       opacity: .3,
       side: THREE.DoubleSide
     });
+    const guggenheimStepMaterial = new THREE.MeshStandardMaterial({
+      color: "#f8f8f3",
+      roughness: .64,
+      metalness: .02
+    });
+    const guggenheimRailMaterial = new THREE.MeshStandardMaterial({
+      color: "#ffffff",
+      roughness: .42,
+      metalness: .04
+    });
+    const guggenheimShadowMaterial = new THREE.MeshStandardMaterial({
+      color: "#d9d2c5",
+      roughness: .7,
+      metalness: .02
+    });
 
     const skyTexture = makeTexture((ctx, canvas) => {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -1068,13 +1127,178 @@
     }
 
     addBox(10, .16, 56, 0, 0, -23, floorMaterial, { title: "갤러리 바닥", artist: "선택한 지점 근처로 이동합니다.", surface: "floor" });
+    addBox(10, .16, 8.2, 0, 0, 8.9, floorMaterial, { title: "2층 계단 홀 바닥", artist: "계단이 있는 입구 홀로 이동합니다.", surface: "floor" });
     addBox(.2, 8.5, 56, -5, 4.18, -23, wallMaterial, { title: "왼쪽 전시 벽", artist: "벽면 가까이로 이동합니다.", surface: "leftWall" });
     addBox(.2, 8.5, 56, 5, 4.18, -23, wallMaterial, { title: "오른쪽 전시 벽", artist: "벽면 가까이로 이동합니다.", surface: "rightWall" });
+    addBox(.2, 8.5, 8.2, -5, 4.18, 8.9, wallMaterial, { title: "계단 홀 왼쪽 벽", artist: "계단 홀 벽면 가까이로 이동합니다.", surface: "leftWall" });
+    addBox(.2, 8.5, 8.2, 5, 4.18, 8.9, wallMaterial, { title: "계단 홀 오른쪽 벽", artist: "계단 홀 벽면 가까이로 이동합니다.", surface: "rightWall" });
     addBox(10, 8.5, .2, 0, 4.18, -50.8, wallMaterial, { title: "전시장 끝 벽", artist: "갤러리 안쪽 끝으로 이동합니다.", surface: "endWall" });
+    addBox(10, 8.5, .16, 0, 4.18, 13, wallMaterial, { title: "입구쪽 전시 벽", artist: "뒤돌아 보이는 벽면 가까이로 이동합니다.", surface: "object" });
     addBox(.16, .16, 56, -4.88, .16, -23, trimMaterial, { title: "왼쪽 하단 라인", artist: "선택한 구조물 근처로 이동합니다.", surface: "leftWall" });
     addBox(.16, .16, 56, 4.88, .16, -23, trimMaterial, { title: "오른쪽 하단 라인", artist: "선택한 구조물 근처로 이동합니다.", surface: "rightWall" });
+    addBox(.16, .16, 8.2, -4.88, .16, 8.9, trimMaterial, { title: "계단 홀 왼쪽 하단 라인", artist: "선택한 구조물 근처로 이동합니다.", surface: "leftWall" });
+    addBox(.16, .16, 8.2, 4.88, .16, 8.9, trimMaterial, { title: "계단 홀 오른쪽 하단 라인", artist: "선택한 구조물 근처로 이동합니다.", surface: "rightWall" });
     addBox(.16, .16, 56, -4.88, 8.33, -23, trimMaterial, { title: "왼쪽 천장 라인", artist: "선택한 구조물 아래로 이동합니다.", surface: "leftWall" });
     addBox(.16, .16, 56, 4.88, 8.33, -23, trimMaterial, { title: "오른쪽 천장 라인", artist: "선택한 구조물 아래로 이동합니다.", surface: "rightWall" });
+
+    function makeArcPoints(centerX, centerZ, radius, startAngle, sweep, count, yOffset = 0, rise = 0) {
+      return Array.from({ length: count }, (_, index) => {
+        const t = index / Math.max(count - 1, 1);
+        const angle = startAngle + sweep * t;
+        return new THREE.Vector3(
+          centerX + Math.cos(angle) * radius,
+          yOffset + rise * t,
+          centerZ + Math.sin(angle) * radius
+        );
+      });
+    }
+
+    function addTube(points, radius, material) {
+      const mesh = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 30, radius, 8, false),
+        material
+      );
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      world.add(mesh);
+      return mesh;
+    }
+
+    function addGuggenheimStairs() {
+      const centerX = 0;
+      const centerZ = 9.15;
+      const stepCount = isTouchDevice ? 30 : 40;
+      const startAngle = THREE.MathUtils.degToRad(205);
+      const sweep = THREE.MathUtils.degToRad(620);
+      const radius = 2.32;
+      const stairRise = 8.15;
+      const staircaseSubject = {
+        title: "2층으로 이어지는 나선 계단",
+        artist: "계단 홀을 가득 채우며 밝은 위층으로 이어지는 구겐하임식 계단입니다.",
+        view: { x: 0, y: 1.76, z: 5.8, yaw: Math.PI, pitch: .08 }
+      };
+
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(3.45, 3.45, .2, 72),
+        guggenheimShadowMaterial
+      );
+      base.position.set(centerX, .09, centerZ);
+      base.scale.z = .88;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      world.add(base);
+      registerSubject(base, staircaseSubject);
+
+      const column = new THREE.Mesh(
+        new THREE.CylinderGeometry(.56, .68, 8.95, 36),
+        guggenheimRailMaterial
+      );
+      column.position.set(centerX, 4.42, centerZ);
+      column.castShadow = true;
+      column.receiveShadow = true;
+      world.add(column);
+      registerSubject(column, staircaseSubject);
+
+      const upperGlow = new THREE.Mesh(
+        new THREE.PlaneGeometry(9.1, 6.85),
+        new THREE.MeshBasicMaterial({
+          color: "#fff8e9",
+          transparent: true,
+          opacity: .48,
+          side: THREE.DoubleSide
+        })
+      );
+      upperGlow.rotation.x = -Math.PI / 2;
+      upperGlow.position.set(centerX, 8.68, centerZ);
+      world.add(upperGlow);
+
+      addBox(9.25, .34, .55, 0, 8.56, 5.55, guggenheimStepMaterial, staircaseSubject);
+      addBox(9.25, .34, .7, 0, 8.56, 12.68, guggenheimStepMaterial, staircaseSubject);
+      addBox(.56, .34, 7.1, -4.56, 8.56, 9.14, guggenheimStepMaterial, staircaseSubject);
+      addBox(.56, .34, 7.1, 4.56, 8.56, 9.14, guggenheimStepMaterial, staircaseSubject);
+
+      for (let i = 0; i < stepCount; i += 1) {
+        const t = i / (stepCount - 1);
+        const angle = startAngle + sweep * t;
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(1.82, .19, .78),
+          guggenheimStepMaterial
+        );
+        step.position.set(
+          centerX + Math.cos(angle) * radius,
+          .22 + t * stairRise,
+          centerZ + Math.sin(angle) * radius
+        );
+        step.rotation.y = Math.PI / 2 - angle;
+        step.castShadow = true;
+        step.receiveShadow = true;
+        world.add(step);
+        if (i % 3 === 0 || i === stepCount - 1) registerSubject(step, staircaseSubject);
+      }
+
+      const landingAngle = startAngle + sweep;
+      const landing = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, .24, 1.34),
+        guggenheimStepMaterial
+      );
+      landing.position.set(
+        centerX + Math.cos(landingAngle) * radius,
+        8.48,
+        centerZ + Math.sin(landingAngle) * radius
+      );
+      landing.rotation.y = Math.PI / 2 - landingAngle;
+      landing.castShadow = true;
+      landing.receiveShadow = true;
+      world.add(landing);
+      registerSubject(landing, staircaseSubject);
+
+      const lowerStringer = addTube(
+        makeArcPoints(centerX, centerZ, radius + .02, startAngle, sweep, 52, .22, stairRise),
+        .26,
+        guggenheimShadowMaterial
+      );
+      registerSubject(lowerStringer, staircaseSubject);
+
+      const outerRail = addTube(
+        makeArcPoints(centerX, centerZ, radius + .88, startAngle, sweep, 52, .98, stairRise),
+        .24,
+        guggenheimRailMaterial
+      );
+      registerSubject(outerRail, staircaseSubject);
+
+      const innerRail = addTube(
+        makeArcPoints(centerX, centerZ, radius - .78, startAngle, sweep, 52, .86, stairRise),
+        .18,
+        guggenheimRailMaterial
+      );
+      registerSubject(innerRail, staircaseSubject);
+
+      for (let i = 0; i < 15; i += 1) {
+        const t = i / 14;
+        const angle = startAngle + sweep * t;
+        const post = new THREE.Mesh(
+          new THREE.CylinderGeometry(.075, .09, 1, 10),
+          guggenheimRailMaterial
+        );
+        post.position.set(
+          centerX + Math.cos(angle) * (radius + .88),
+          .62 + t * stairRise,
+          centerZ + Math.sin(angle) * (radius + .88)
+        );
+        post.castShadow = true;
+        world.add(post);
+      }
+
+      const hitbox = new THREE.Mesh(
+        new THREE.BoxGeometry(8.9, 9.4, 7.3),
+        hitboxMaterial
+      );
+      hitbox.position.set(0, 4.8, 9.08);
+      registerSubject(hitbox, staircaseSubject);
+      world.add(hitbox);
+    }
+
+    addGuggenheimStairs();
 
     const sky = new THREE.Mesh(
       new THREE.PlaneGeometry(14, 64),
@@ -1235,6 +1459,142 @@
       interactive.push(hitbox);
     }
 
+    function addLegoFace(group, y = 1.56) {
+      const faceMaterial = new THREE.MeshStandardMaterial({ color: "#151515", roughness: .52 });
+      [-.075, .075].forEach(x => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(.026, 10, 8), faceMaterial);
+        eye.position.set(x, y + .045, .224);
+        group.add(eye);
+      });
+      const smile = new THREE.Mesh(new THREE.TorusGeometry(.07, .007, 6, 18, Math.PI), faceMaterial);
+      smile.position.set(0, y - .035, .226);
+      smile.rotation.set(Math.PI / 2, 0, Math.PI);
+      group.add(smile);
+    }
+
+    function addLegoHair(group, wig, hairMaterial, y = 1.72) {
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .13, 18), hairMaterial);
+      cap.position.set(0, y, 0);
+      cap.castShadow = true;
+      group.add(cap);
+      if (wig === "powdered" || wig === "baroque") {
+        [-.27, -.16, -.05, .06, .17, .28].forEach((x, index) => {
+          const curl = new THREE.Mesh(new THREE.CylinderGeometry(.055, .055, .12, 10), hairMaterial);
+          curl.position.set(x, y - .17 - (index % 2) * .08, .02);
+          curl.rotation.z = Math.PI / 2;
+          curl.castShadow = true;
+          group.add(curl);
+        });
+      }
+      if (wig === "wild") {
+        [-.18, -.06, .08, .2].forEach(x => {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(.055, .2, 8), hairMaterial);
+          spike.position.set(x, y + .14, .02);
+          spike.rotation.z = -x * 2.4;
+          spike.castShadow = true;
+          group.add(spike);
+        });
+      }
+      if (wig === "liszt") {
+        [-.24, .24].forEach(x => {
+          const hairPanel = new THREE.Mesh(new THREE.BoxGeometry(.12, .48, .11), hairMaterial);
+          hairPanel.position.set(x, y - .25, -.02);
+          hairPanel.rotation.z = x > 0 ? -.12 : .12;
+          hairPanel.castShadow = true;
+          group.add(hairPanel);
+        });
+      }
+    }
+
+    function addLegoStandingBody(group, person) {
+      const bodyMaterial = new THREE.MeshStandardMaterial({ color: person.coat, roughness: .68 });
+      const hairMaterial = new THREE.MeshStandardMaterial({ color: person.hair, roughness: .78 });
+      const accentMaterial = new THREE.MeshStandardMaterial({ color: person.accent, roughness: .58, metalness: person.metalness || 0 });
+      const shirtMaterial = new THREE.MeshStandardMaterial({ color: "#f7f0df", roughness: .72 });
+      const legMaterial = new THREE.MeshStandardMaterial({ color: person.legs || person.coat, roughness: .74 });
+      const legoSkinMaterial = new THREE.MeshStandardMaterial({ color: "#f0c646", roughness: .58 });
+      const parts = { arms: [], legs: [] };
+
+      const hip = new THREE.Mesh(new THREE.BoxGeometry(.5, .16, .28), legMaterial);
+      hip.position.y = .65;
+      hip.castShadow = true;
+      group.add(hip);
+
+      [-.14, .14].forEach(x => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(.2, .58, .22), legMaterial);
+        leg.position.set(x, .31, 0);
+        leg.castShadow = true;
+        group.add(leg);
+        parts.legs.push({ mesh: leg, side: x < 0 ? -1 : 1, baseX: leg.rotation.x });
+      });
+
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(.58, .62, .3), bodyMaterial);
+      torso.position.y = 1.03;
+      torso.castShadow = true;
+      torso.receiveShadow = true;
+      group.add(torso);
+
+      const shirt = new THREE.Mesh(new THREE.BoxGeometry(.25, .42, .035), shirtMaterial);
+      shirt.position.set(0, 1.06, .17);
+      group.add(shirt);
+
+      [-.39, .39].forEach(x => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07, .075, .58, 12), bodyMaterial);
+        arm.position.set(x, .96, .01);
+        arm.rotation.z = x < 0 ? -.16 : .16;
+        arm.castShadow = true;
+        group.add(arm);
+        parts.arms.push({ mesh: arm, side: x < 0 ? -1 : 1, baseZ: arm.rotation.z });
+
+        const hand = new THREE.Mesh(new THREE.TorusGeometry(.06, .019, 8, 14, Math.PI * 1.35), legoSkinMaterial);
+        hand.position.set(x, .64, .04);
+        hand.rotation.set(Math.PI / 2, 0, x < 0 ? -.8 : .8);
+        group.add(hand);
+      });
+
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .08, 18), legoSkinMaterial);
+      neck.position.y = 1.38;
+      group.add(neck);
+
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .34, 24), legoSkinMaterial);
+      head.position.y = 1.57;
+      head.castShadow = true;
+      group.add(head);
+
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .055, 18), legoSkinMaterial);
+      stud.position.y = 1.77;
+      stud.castShadow = true;
+      group.add(stud);
+
+      addLegoFace(group, 1.57);
+      addLegoHair(group, person.wig, hairMaterial, 1.79);
+
+      if (person.scarf) {
+        const scarf = new THREE.Mesh(new THREE.BoxGeometry(.43, .09, .06), accentMaterial);
+        scarf.position.set(0, 1.29, .19);
+        scarf.rotation.z = -.12;
+        group.add(scarf);
+      }
+
+      if (person.bowTie) {
+        [-.055, .055].forEach(x => {
+          const bow = new THREE.Mesh(new THREE.BoxGeometry(.08, .055, .055), accentMaterial);
+          bow.position.set(x, 1.28, .2);
+          bow.rotation.z = x < 0 ? .42 : -.42;
+          group.add(bow);
+        });
+      }
+
+      if (person.trim) {
+        [-.18, .18].forEach(x => {
+          const trim = new THREE.Mesh(new THREE.BoxGeometry(.035, .46, .04), accentMaterial);
+          trim.position.set(x, 1.05, .19);
+          group.add(trim);
+        });
+      }
+      return parts;
+    }
+
     function addSeatedVisitor() {
       const group = new THREE.Group();
       group.position.set(0, .64, -14.88);
@@ -1244,135 +1604,81 @@
       const stripeMaterial = new THREE.MeshStandardMaterial({ color: "#d8e0f3", roughness: .72 });
       const pantsMaterial = new THREE.MeshStandardMaterial({ color: "#17191d", roughness: .82 });
       const hairMaterial = new THREE.MeshStandardMaterial({ color: "#2e3337", roughness: .84 });
-      const glassesMaterial = new THREE.MeshStandardMaterial({ color: "#241f1a", roughness: .32, metalness: .18 });
-      const shoeMaterial = new THREE.MeshStandardMaterial({ color: "#0c0c0c", roughness: .68 });
+      const legoSkinMaterial = new THREE.MeshStandardMaterial({ color: "#f0c646", roughness: .58 });
+      const shoeMaterial = new THREE.MeshStandardMaterial({ color: "#101010", roughness: .68 });
+      const seatedParts = { arms: [], legs: [] };
 
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(.62, .68, .22), shirtMaterial);
+      const hip = new THREE.Mesh(new THREE.BoxGeometry(.54, .18, .32), pantsMaterial);
+      hip.position.set(0, .25, .12);
+      hip.castShadow = true;
+      group.add(hip);
+
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(.62, .58, .3), shirtMaterial);
       torso.position.set(0, .58, .02);
-      torso.rotation.x = -.12;
+      torso.rotation.x = -.08;
       torso.castShadow = true;
       torso.receiveShadow = true;
       group.add(torso);
 
       [-.23, -.14, -.05, .04, .13, .22].forEach(x => {
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(.018, .66, .012), stripeMaterial);
-        stripe.position.set(x, .58, .138);
-        stripe.rotation.x = -.12;
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(.018, .54, .014), stripeMaterial);
+        stripe.position.set(x, .58, .176);
+        stripe.rotation.x = -.08;
         group.add(stripe);
       });
 
-      const collar = new THREE.Mesh(new THREE.ConeGeometry(.15, .13, 3), stripeMaterial);
-      collar.position.set(0, .96, .14);
-      collar.rotation.z = Math.PI;
-      collar.rotation.x = -.18;
-      group.add(collar);
-
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(.08, .09, .12, 16), npcSkinMaterial);
-      neck.position.set(0, .98, .02);
-      neck.castShadow = true;
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .08, 18), legoSkinMaterial);
+      neck.position.set(0, .92, .02);
       group.add(neck);
 
-      const head = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), npcSkinMaterial);
-      head.position.set(0, 1.18, .04);
-      head.scale.set(.9, 1.08, .86);
-      head.rotation.x = .16;
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .34, 24), legoSkinMaterial);
+      head.position.set(0, 1.12, .04);
       head.castShadow = true;
       group.add(head);
 
-      const face = new THREE.Mesh(new THREE.CircleGeometry(.155, 24), npcSkinMaterial);
-      face.position.set(0, 1.17, .205);
-      face.scale.set(.86, 1.08, 1);
-      group.add(face);
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .055, 18), legoSkinMaterial);
+      stud.position.set(0, 1.32, .04);
+      stud.castShadow = true;
+      group.add(stud);
 
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(.21, 20, 12, 0, Math.PI * 2, 0, Math.PI * .46), hairMaterial);
-      hair.position.set(0, 1.34, -.04);
-      hair.scale.set(1.12, .7, .92);
-      hair.castShadow = true;
+      addLegoFace(group, 1.12);
+
+      const hair = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .12, 18), hairMaterial);
+      hair.position.set(0, 1.34, .04);
       group.add(hair);
 
-      [-.15, -.06, .04, .13].forEach((x, index) => {
-        const tuft = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 8), hairMaterial);
-        tuft.position.set(x, 1.38 + (index % 2) * .018, .04);
-        tuft.scale.set(1.1, .55, .75);
-        tuft.castShadow = true;
-        group.add(tuft);
+      [-.4, .4].forEach(x => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07, .075, .46, 12), shirtMaterial);
+        arm.position.set(x, .56, .04);
+        arm.rotation.z = x < 0 ? -.2 : .2;
+        arm.castShadow = true;
+        group.add(arm);
+        seatedParts.arms.push({ mesh: arm, side: x < 0 ? -1 : 1, baseZ: arm.rotation.z });
+
+        const hand = new THREE.Mesh(new THREE.TorusGeometry(.055, .018, 8, 14, Math.PI * 1.35), legoSkinMaterial);
+        hand.position.set(x, .3, .07);
+        hand.rotation.set(Math.PI / 2, 0, x < 0 ? -.8 : .8);
+        group.add(hand);
       });
 
-      [-.078, .078].forEach(x => {
-        const lens = new THREE.Mesh(new THREE.TorusGeometry(.064, .009, 8, 22), glassesMaterial);
-        lens.position.set(x, 1.18, .218);
-        lens.rotation.x = Math.PI / 2;
-        group.add(lens);
+      [-.15, .15].forEach(x => {
+        const thigh = new THREE.Mesh(new THREE.BoxGeometry(.2, .18, .55), pantsMaterial);
+        thigh.position.set(x, .18, .36);
+        thigh.castShadow = true;
+        group.add(thigh);
+
+        const shin = new THREE.Mesh(new THREE.BoxGeometry(.19, .42, .19), pantsMaterial);
+        shin.position.set(x, -.1, .62);
+        shin.rotation.x = .18;
+        shin.castShadow = true;
+        group.add(shin);
+        seatedParts.legs.push({ mesh: shin, side: x < 0 ? -1 : 1, baseX: shin.rotation.x });
+
+        const shoe = new THREE.Mesh(new THREE.BoxGeometry(.24, .08, .2), shoeMaterial);
+        shoe.position.set(x, -.33, .68);
+        shoe.castShadow = true;
+        group.add(shoe);
       });
-      const bridge = new THREE.Mesh(new THREE.BoxGeometry(.064, .012, .014), glassesMaterial);
-      bridge.position.set(0, 1.18, .218);
-      group.add(bridge);
-
-      const armGeometry = new THREE.CylinderGeometry(.045, .055, .54, 12);
-      const leftArm = new THREE.Mesh(armGeometry, npcSkinMaterial);
-      leftArm.position.set(-.39, .52, .08);
-      leftArm.rotation.z = .22;
-      leftArm.castShadow = true;
-      group.add(leftArm);
-
-      const rightArm = new THREE.Mesh(armGeometry, npcSkinMaterial);
-      rightArm.position.set(.39, .52, .08);
-      rightArm.rotation.z = -.22;
-      rightArm.castShadow = true;
-      group.add(rightArm);
-
-      const leftSleeve = new THREE.Mesh(new THREE.CylinderGeometry(.062, .07, .26, 12), shirtMaterial);
-      leftSleeve.position.set(-.33, .76, .06);
-      leftSleeve.rotation.z = .25;
-      leftSleeve.castShadow = true;
-      group.add(leftSleeve);
-
-      const rightSleeve = new THREE.Mesh(new THREE.CylinderGeometry(.062, .07, .26, 12), shirtMaterial);
-      rightSleeve.position.set(.33, .76, .06);
-      rightSleeve.rotation.z = -.25;
-      rightSleeve.castShadow = true;
-      group.add(rightSleeve);
-
-      const hip = new THREE.Mesh(new THREE.BoxGeometry(.5, .18, .28), pantsMaterial);
-      hip.position.set(0, .22, .08);
-      hip.castShadow = true;
-      group.add(hip);
-
-      const thighGeometry = new THREE.BoxGeometry(.18, .16, .58);
-      const leftThigh = new THREE.Mesh(thighGeometry, pantsMaterial);
-      leftThigh.position.set(-.16, .18, .34);
-      leftThigh.rotation.x = -.06;
-      leftThigh.castShadow = true;
-      group.add(leftThigh);
-
-      const rightThigh = new THREE.Mesh(thighGeometry, pantsMaterial);
-      rightThigh.position.set(.16, .18, .34);
-      rightThigh.rotation.x = -.06;
-      rightThigh.castShadow = true;
-      group.add(rightThigh);
-
-      const shinGeometry = new THREE.BoxGeometry(.15, .5, .15);
-      const leftShin = new THREE.Mesh(shinGeometry, pantsMaterial);
-      leftShin.position.set(-.16, -.13, .62);
-      leftShin.rotation.x = .22;
-      leftShin.castShadow = true;
-      group.add(leftShin);
-
-      const rightShin = new THREE.Mesh(shinGeometry, pantsMaterial);
-      rightShin.position.set(.16, -.13, .62);
-      rightShin.rotation.x = .22;
-      rightShin.castShadow = true;
-      group.add(rightShin);
-
-      const leftShoe = new THREE.Mesh(new THREE.BoxGeometry(.22, .08, .18), shoeMaterial);
-      leftShoe.position.set(-.16, -.38, .69);
-      leftShoe.castShadow = true;
-      group.add(leftShoe);
-
-      const rightShoe = new THREE.Mesh(new THREE.BoxGeometry(.22, .08, .18), shoeMaterial);
-      rightShoe.position.set(.16, -.38, .69);
-      rightShoe.castShadow = true;
-      group.add(rightShoe);
 
       addPersonHitbox(
         group,
@@ -1386,136 +1692,23 @@
       );
 
       world.add(group);
+      animatedNpcs.push({
+        group,
+        parts: seatedParts,
+        baseY: group.position.y,
+        baseRotY: group.rotation.y,
+        phase: 2.2,
+        mode: "seated"
+      });
     }
 
     addSeatedVisitor();
 
     function addNpc(person) {
       const group = new THREE.Group();
-      const bodyMaterial = new THREE.MeshStandardMaterial({ color: person.coat, roughness: .72 });
-      const hairMaterial = new THREE.MeshStandardMaterial({ color: person.hair, roughness: .8 });
-      const accentMaterial = new THREE.MeshStandardMaterial({ color: person.accent, roughness: .58, metalness: person.metalness || 0 });
-      const shirtMaterial = new THREE.MeshStandardMaterial({ color: "#f4eee4", roughness: .76 });
       group.position.set(person.x, 0, person.z);
       group.rotation.y = person.look === "left" ? -Math.PI / 2 : Math.PI / 2;
-
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(.22, .3, 1.05, 18), bodyMaterial);
-      body.position.y = .92;
-      body.castShadow = true;
-      body.receiveShadow = true;
-      group.add(body);
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 24, 16), npcSkinMaterial);
-      head.position.y = 1.58;
-      head.castShadow = true;
-      group.add(head);
-
-      const shirt = new THREE.Mesh(new THREE.BoxGeometry(.28, .28, .05), shirtMaterial);
-      shirt.position.set(0, 1.18, .23);
-      shirt.rotation.x = -.12;
-      shirt.castShadow = true;
-      group.add(shirt);
-
-      const hair = new THREE.Mesh(new THREE.SphereGeometry(.235, 20, 12, 0, Math.PI * 2, 0, Math.PI * .58), hairMaterial);
-      hair.position.set(0, 1.66, -.02);
-      hair.castShadow = true;
-      group.add(hair);
-
-      const armGeometry = new THREE.CylinderGeometry(.045, .055, .76, 10);
-      const leftArm = new THREE.Mesh(armGeometry, bodyMaterial);
-      leftArm.position.set(-.3, .96, .02);
-      leftArm.rotation.z = .25;
-      leftArm.castShadow = true;
-      group.add(leftArm);
-
-      const rightArm = new THREE.Mesh(armGeometry, bodyMaterial);
-      rightArm.position.set(.3, .96, -.02);
-      rightArm.rotation.z = -.25;
-      rightArm.castShadow = true;
-      group.add(rightArm);
-
-      const legGeometry = new THREE.CylinderGeometry(.06, .07, .62, 10);
-      const leftLeg = new THREE.Mesh(legGeometry, bodyMaterial);
-      leftLeg.position.set(-.12, .31, 0);
-      leftLeg.castShadow = true;
-      group.add(leftLeg);
-
-      const rightLeg = new THREE.Mesh(legGeometry, bodyMaterial);
-      rightLeg.position.set(.12, .31, 0);
-      rightLeg.castShadow = true;
-      group.add(rightLeg);
-
-      if (person.wig === "powdered") {
-        [-.22, -.12, 0, .12, .22].forEach((x, curlIndex) => {
-          const curl = new THREE.Mesh(new THREE.SphereGeometry(.085, 14, 10), hairMaterial);
-          curl.position.set(x, 1.73 - Math.abs(x) * .45, .06);
-          curl.castShadow = true;
-          group.add(curl);
-          if (curlIndex < 2 || curlIndex > 2) {
-            const sideCurl = new THREE.Mesh(new THREE.SphereGeometry(.095, 14, 10), hairMaterial);
-            sideCurl.position.set(x < 0 ? -.27 : .27, 1.53 - Math.abs(x) * .24, .01);
-            sideCurl.castShadow = true;
-            group.add(sideCurl);
-          }
-        });
-      }
-
-      if (person.wig === "baroque") {
-        [-.32, -.24, -.16, .16, .24, .32].forEach((x, curlIndex) => {
-          const curl = new THREE.Mesh(new THREE.SphereGeometry(.085, 14, 10), hairMaterial);
-          curl.position.set(x, 1.62 - (curlIndex % 3) * .14, .02);
-          curl.castShadow = true;
-          group.add(curl);
-        });
-      }
-
-      if (person.wig === "wild") {
-        [-.24, -.12, .02, .14, .25].forEach((x, spikeIndex) => {
-          const spike = new THREE.Mesh(new THREE.ConeGeometry(.075, .34, 10), hairMaterial);
-          spike.position.set(x, 1.82 + (spikeIndex % 2) * .05, .02);
-          spike.rotation.z = x * -2.2;
-          spike.rotation.x = .25;
-          spike.castShadow = true;
-          group.add(spike);
-        });
-      }
-
-      if (person.wig === "liszt") {
-        [-.24, .24].forEach(x => {
-          const longHair = new THREE.Mesh(new THREE.CylinderGeometry(.075, .1, .7, 12), hairMaterial);
-          longHair.position.set(x, 1.34, -.02);
-          longHair.rotation.z = x > 0 ? -.18 : .18;
-          longHair.castShadow = true;
-          group.add(longHair);
-        });
-      }
-
-      if (person.scarf) {
-        const scarf = new THREE.Mesh(new THREE.BoxGeometry(.4, .12, .07), accentMaterial);
-        scarf.position.set(0, 1.25, .28);
-        scarf.rotation.z = -.15;
-        scarf.castShadow = true;
-        group.add(scarf);
-      }
-
-      if (person.bowTie) {
-        [-.06, .06].forEach(x => {
-          const bow = new THREE.Mesh(new THREE.ConeGeometry(.07, .12, 3), accentMaterial);
-          bow.position.set(x, 1.25, .28);
-          bow.rotation.z = x < 0 ? Math.PI / 2 : -Math.PI / 2;
-          bow.castShadow = true;
-          group.add(bow);
-        });
-      }
-
-      if (person.trim) {
-        [-.18, 0, .18].forEach(x => {
-          const trim = new THREE.Mesh(new THREE.BoxGeometry(.035, .62, .035), accentMaterial);
-          trim.position.set(x, .92, .28);
-          trim.castShadow = true;
-          group.add(trim);
-        });
-      }
+      const parts = addLegoStandingBody(group, person);
 
       const side = person.x >= 0 ? 1 : -1;
       addPersonHitbox(
@@ -1536,11 +1729,22 @@
       );
 
       world.add(group);
+      animatedNpcs.push({
+        group,
+        parts,
+        baseY: group.position.y,
+        baseX: group.position.x,
+        baseZ: group.position.z,
+        baseRotY: group.rotation.y,
+        phase: Math.abs(person.x * 1.7 + person.z * .31),
+        mode: person.walker ? "walking" : "standing",
+        walkPhase: person.walkPhase || 0
+      });
     }
 
     [
-      { x: 2.25, z: -11.4, look: "right", coat: "#b6402d", hair: "#e8e0cf", accent: "#d6b75a", wig: "powdered", trim: true, metalness: .22 },
-      { x: -2.25, z: -15.5, look: "left", coat: "#252826", hair: "#5d5b55", accent: "#b82924", wig: "wild", scarf: true },
+      { x: 1.4, z: -11.4, look: "right", coat: "#b6402d", hair: "#e8e0cf", accent: "#d6b75a", wig: "powdered", trim: true, metalness: .22, walker: true, walkPhase: .25 },
+      { x: -1.4, z: -15.5, look: "left", coat: "#252826", hair: "#5d5b55", accent: "#b82924", wig: "wild", scarf: true, walker: true, walkPhase: Math.PI },
       { x: 2.18, z: -20.7, look: "right", coat: "#1f211e", hair: "#e5dcc8", accent: "#c8c2ad", wig: "baroque", trim: true, metalness: .18 },
       { x: -2.35, z: -25.2, look: "left", coat: "#23516a", hair: "#eee7dc", accent: "#c59b41", wig: "baroque", trim: true, metalness: .25 },
       { x: 1.92, z: -38.4, look: "right", coat: "#181818", hair: "#d6d1c7", accent: "#0f0f0f", wig: "liszt", bowTie: true }
@@ -1584,12 +1788,20 @@
       pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
     }
 
+    function shortestAngleDelta(from, to) {
+      return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+    }
+
+    function lerpAngle(from, to, amount) {
+      return from + shortestAngleDelta(from, to) * amount;
+    }
+
     function updateLookDrag(event) {
       if (!lookDrag.active || isUiEvent(event)) return;
       const dx = event.clientX - lookDrag.startX;
       const dy = event.clientY - lookDrag.startY;
       if (Math.abs(dx) + Math.abs(dy) > 6) lookDrag.moved = true;
-      target.yaw = THREE.MathUtils.clamp(lookDrag.yaw - dx * .0022, -1.38, 1.38);
+      target.yaw = lookDrag.yaw - dx * .0022;
       target.pitch = THREE.MathUtils.clamp(lookDrag.pitch - dy * .0032, -.42, .42);
       viewingArt = null;
     }
@@ -1766,7 +1978,7 @@
       const centerDy = metrics.centerY - touchGesture.startCenterY;
       const distanceRatio = touchGesture.startDistance / Math.max(metrics.distance, 1);
       const zoomRatio = Math.pow(distanceRatio, 2.45);
-      target.yaw = THREE.MathUtils.clamp(touchGesture.yaw - centerDx * .0022, -1.38, 1.38);
+      target.yaw = touchGesture.yaw - centerDx * .0022;
       target.pitch = THREE.MathUtils.clamp(touchGesture.pitch - centerDy * .003, -.42, .42);
       setZoomFov(touchGesture.fov * zoomRatio);
     }, { passive: false });
@@ -1800,7 +2012,7 @@
       event.preventDefault();
       viewingArt = null;
       if (Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.15) {
-        target.yaw = THREE.MathUtils.clamp(target.yaw - event.deltaX * .002, -1.38, 1.38);
+        target.yaw -= event.deltaX * .002;
         return;
       }
       zoomByWheel(event.deltaY);
@@ -1855,15 +2067,50 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    function animateNpcs(time) {
+      const seconds = time * .001;
+      animatedNpcs.forEach(npc => {
+        if (npc.mode === "walking") {
+          const loop = seconds * .12 + npc.walkPhase;
+          const radiusX = 1.55;
+          const radiusZ = 13.2;
+          const centerZ = -24.6;
+          const nextX = Math.sin(loop) * radiusX;
+          const nextZ = centerZ + Math.cos(loop) * radiusZ;
+          const tangentX = Math.cos(loop) * radiusX;
+          const tangentZ = -Math.sin(loop) * radiusZ;
+          npc.group.position.x = nextX;
+          npc.group.position.z = THREE.MathUtils.clamp(nextZ, -39.4, -10.2);
+          npc.baseRotY = Math.atan2(tangentX, tangentZ);
+        }
+
+        const pace = npc.mode === "seated" ? .72 : npc.mode === "walking" ? 2.35 : 1.35;
+        const wave = Math.sin(seconds * pace + npc.phase);
+        const counterWave = Math.cos(seconds * pace + npc.phase);
+        npc.group.position.y = npc.baseY + (npc.mode === "seated" ? wave * .006 : Math.abs(wave) * .018);
+        npc.group.rotation.y = npc.baseRotY + counterWave * (npc.mode === "seated" ? .045 : npc.mode === "walking" ? .055 : .025);
+        npc.group.rotation.z = wave * (npc.mode === "seated" ? .025 : npc.mode === "walking" ? .055 : .035);
+
+        npc.parts.arms.forEach(part => {
+          part.mesh.rotation.z = part.baseZ + wave * part.side * (npc.mode === "seated" ? .055 : npc.mode === "walking" ? .28 : .18);
+        });
+
+        npc.parts.legs.forEach(part => {
+          part.mesh.rotation.x = part.baseX + counterWave * part.side * (npc.mode === "seated" ? .025 : npc.mode === "walking" ? .2 : .12);
+        });
+      });
+    }
+
     let lastRenderTime = 0;
     function animate(time = 0) {
       requestAnimationFrame(animate);
       if (time - lastRenderTime < targetFrameMs) return;
       lastRenderTime = time;
+      animateNpcs(time);
       current.x = THREE.MathUtils.lerp(current.x, target.x, .055);
       current.y = THREE.MathUtils.lerp(current.y, target.y, .055);
       current.z = THREE.MathUtils.lerp(current.z, target.z, .055);
-      current.yaw = THREE.MathUtils.lerp(current.yaw, target.yaw, .045);
+      current.yaw = lerpAngle(current.yaw, target.yaw, .045);
       current.pitch = THREE.MathUtils.lerp(current.pitch, target.pitch, .06);
       current.fov = THREE.MathUtils.lerp(current.fov, target.fov, .18);
 
