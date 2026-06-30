@@ -596,6 +596,7 @@
     const guestbookClose = document.querySelector("#guestbookClose");
     const guestbookSubmit = document.querySelector("#guestbookSubmit");
     const guestbookEndpoint = "https://script.google.com/macros/s/AKfycbyTdaNVB1gp0iKMoLZuR6uXsef4vCFDhf_eg6y7bMztQtKByw63eroQhkFht-1c3Lld/exec";
+    const guestbookCacheKey = "grhs-gallery-guestbook-cache-v1";
     const playlist = [
       "assets/audio/danseuses-de-delphes.mp3",
       "assets/audio/voiles.mp3",
@@ -605,6 +606,9 @@
     ];
     let trackIndex = 0;
     let shouldAutoPlay = true;
+    let guestbookCache = [];
+    let guestbookLoadedAt = 0;
+    let guestbookLoadingPromise = null;
 
     function loadTrack(index) {
       const nextTrack = playlist[index];
@@ -690,29 +694,77 @@
       guestbookList.appendChild(item);
     }
 
-    async function loadGuestbook() {
-      renderGuestbookMessage("한줄평을 불러오는 중입니다.");
+    function readGuestbookCache() {
       try {
-        const response = await fetch(`${guestbookEndpoint}?t=${Date.now()}`, { cache: "no-store" });
-        const entries = await response.json();
-        renderGuestbook(Array.isArray(entries) ? entries : []);
+        const cached = JSON.parse(localStorage.getItem(guestbookCacheKey) || "[]");
+        guestbookCache = Array.isArray(cached) ? cached.filter(entry => entry?.text).slice(0, 80) : [];
       } catch {
-        renderGuestbookMessage("한줄평을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+        guestbookCache = [];
       }
+      return guestbookCache;
+    }
+
+    function writeGuestbookCache(entries) {
+      guestbookCache = Array.isArray(entries) ? entries.filter(entry => entry?.text).slice(0, 80) : [];
+      guestbookLoadedAt = Date.now();
+      try {
+        localStorage.setItem(guestbookCacheKey, JSON.stringify(guestbookCache));
+      } catch {}
+    }
+
+    async function loadGuestbook({ silent = false, force = false } = {}) {
+      if (guestbookLoadingPromise) return guestbookLoadingPromise;
+      if (!force && guestbookCache.length && Date.now() - guestbookLoadedAt < 30000) {
+        if (!silent) renderGuestbook(guestbookCache);
+        return guestbookCache;
+      }
+      if (!silent && !guestbookCache.length) renderGuestbookMessage("한줄평을 불러오는 중입니다.");
+      guestbookLoadingPromise = (async () => {
+        try {
+          const response = await fetch(`${guestbookEndpoint}?t=${Date.now()}`, { cache: "no-store" });
+          const entries = await response.json();
+          const nextEntries = Array.isArray(entries) ? entries : [];
+          writeGuestbookCache(nextEntries);
+          if (!silent || !guestbookModal.classList.contains("is-hidden")) renderGuestbook(guestbookCache);
+          return guestbookCache;
+        } catch {
+          if (!silent && !guestbookCache.length) {
+            renderGuestbookMessage("한줄평을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+          }
+          return guestbookCache;
+        } finally {
+          guestbookLoadingPromise = null;
+        }
+      })();
+      return guestbookLoadingPromise;
+    }
+
+    function preloadGuestbook() {
+      readGuestbookCache();
+      window.setTimeout(() => loadGuestbook({ silent: true }), 900);
+    }
+
+    preloadGuestbook();
+
+    async function refreshGuestbookSoon() {
+      window.setTimeout(() => loadGuestbook({ silent: false, force: true }), 900);
     }
 
     async function submitGuestbook(text) {
-      guestbookSubmit.disabled = true;
-      guestbookSubmit.textContent = "저장 중";
+      const optimisticEntries = [{ text }, ...guestbookCache.filter(entry => entry.text !== text)];
+      writeGuestbookCache(optimisticEntries);
+      renderGuestbook(guestbookCache);
+      guestbookText.value = "";
       try {
+        guestbookSubmit.disabled = true;
+        guestbookSubmit.textContent = "저장 중";
         await fetch(guestbookEndpoint, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ text })
         });
-        guestbookText.value = "";
-        await loadGuestbook();
+        refreshGuestbookSoon();
       } catch {
         renderGuestbookMessage("한줄평을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.");
       } finally {
@@ -723,8 +775,11 @@
 
     function openGuestbook(event) {
       consumeModalEvent(event);
-      loadGuestbook();
+      if (!guestbookCache.length) readGuestbookCache();
+      if (guestbookCache.length) renderGuestbook(guestbookCache);
+      else renderGuestbookMessage("한줄평을 불러오는 중입니다.");
       guestbookModal.classList.remove("is-hidden");
+      loadGuestbook({ silent: false });
       window.setTimeout(() => guestbookText.focus(), 30);
     }
 
