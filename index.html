@@ -662,6 +662,7 @@
       if (welcomeModal.classList.contains("is-hidden")) return;
       welcomeModal.classList.add("is-hidden");
       startBackgroundMusic();
+      warmGuestbook();
     }
 
     function openGuide(event) {
@@ -741,10 +742,15 @@
 
     function preloadGuestbook() {
       readGuestbookCache();
-      window.setTimeout(() => loadGuestbook({ silent: true }), 900);
+      warmGuestbook();
+      window.setTimeout(warmGuestbook, 5000);
     }
 
     preloadGuestbook();
+
+    function warmGuestbook() {
+      loadGuestbook({ silent: true, force: !guestbookCache.length });
+    }
 
     async function refreshGuestbookSoon() {
       window.setTimeout(() => loadGuestbook({ silent: false, force: true }), 900);
