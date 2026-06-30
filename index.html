@@ -35,7 +35,7 @@
     #gallery {
       position: fixed;
       inset: 0;
-      cursor: crosshair;
+      cursor: default;
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
       background:
@@ -504,15 +504,6 @@
       }
     }
 
-    @media (hover: hover) and (pointer: fine) {
-      html,
-      body,
-      #gallery,
-      button {
-        cursor: none;
-      }
-    }
-
     @media (pointer: coarse), (max-width: 760px) {
       .character-cursor {
         width: 48px;
@@ -909,13 +900,14 @@
     const pointer = new THREE.Vector2();
     const interactive = [];
     const cursorState = {
-      x: -120,
-      y: -120,
-      targetX: -120,
-      targetY: -120,
-      visible: false,
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      targetX: window.innerWidth / 2,
+      targetY: window.innerHeight / 2,
+      visible: true,
       hideTimer: 0
     };
+    characterCursor?.classList.add("is-visible");
     const homePosition = {
       x: 0,
       y: 1.75,
@@ -1778,8 +1770,9 @@
       if (!characterCursor) return;
       window.clearTimeout(cursorState.hideTimer);
       cursorState.hideTimer = window.setTimeout(() => {
-        cursorState.visible = false;
-        characterCursor.classList.remove("is-visible", "is-hovering", "is-active");
+        cursorState.visible = true;
+        characterCursor.classList.add("is-visible");
+        characterCursor.classList.remove("is-hovering", "is-active");
       }, delay);
     }
 
@@ -1880,7 +1873,7 @@
       setPointerCoordinates(event);
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
-      mount.style.cursor = hit ? "zoom-in" : "crosshair";
+      mount.style.cursor = hit ? "zoom-in" : "default";
       characterCursor?.classList.toggle("is-hovering", !!hit);
       if (hit?.userData.kind === "person") {
         if (hit !== hoveredArt) {
@@ -1904,7 +1897,6 @@
       characterCursor?.classList.remove("is-active");
       if (event.pointerType === "touch") {
         moveCharacterCursor(event);
-        hideCharacterCursorSoon();
       }
       if (isUiEvent(event)) {
         lookDrag.active = false;
@@ -1944,8 +1936,9 @@
     window.addEventListener("pointerleave", () => {
       lookDrag.active = false;
       lookDrag.moved = false;
-      cursorState.visible = false;
-      characterCursor?.classList.remove("is-visible", "is-hovering", "is-active");
+      cursorState.visible = true;
+      characterCursor?.classList.add("is-visible");
+      characterCursor?.classList.remove("is-hovering", "is-active");
     });
 
     window.addEventListener("pointercancel", () => {
