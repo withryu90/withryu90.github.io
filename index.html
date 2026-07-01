@@ -377,6 +377,56 @@
       display: none;
     }
 
+    .stair-prompt {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 9;
+      width: min(360px, calc(100vw - 32px));
+      padding: 20px;
+      border: 1px solid rgba(41, 36, 31, .16);
+      border-radius: 8px;
+      background: rgba(255, 255, 252, .95);
+      box-shadow: 0 22px 70px rgba(40, 35, 28, .2);
+      text-align: center;
+      transform: translate(-50%, -50%);
+      backdrop-filter: blur(16px);
+      pointer-events: auto;
+      user-select: none;
+    }
+
+    .stair-prompt * {
+      pointer-events: auto;
+    }
+
+    .stair-prompt.is-hidden {
+      display: none;
+    }
+
+    .stair-prompt p {
+      margin: 0;
+      font-size: clamp(1rem, 2.8vw, 1.22rem);
+      line-height: 1.5;
+      color: var(--ink);
+      word-break: keep-all;
+    }
+
+    .stair-prompt-actions {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .stair-prompt button {
+      width: auto;
+      min-width: 82px;
+      height: 38px;
+      padding: 0 14px;
+      font-size: .9rem;
+      touch-action: manipulation;
+    }
+
     .welcome-panel {
       width: min(560px, 100%);
       padding: clamp(24px, 5vw, 42px);
@@ -668,6 +718,13 @@
       <div class="guestbook-list" id="guestbookList" aria-live="polite"></div>
     </div>
   </div>
+  <div class="stair-prompt is-hidden" id="stairPrompt" role="dialog" aria-labelledby="stairPromptText">
+    <p id="stairPromptText">2층 전시장으로 이동하겠습니까?</p>
+    <div class="stair-prompt-actions">
+      <button id="stairMove" type="button">이동</button>
+      <button id="stairClose" type="button">닫기</button>
+    </div>
+  </div>
   <audio id="musicPlayer" class="music-player" preload="none"></audio>
 
   <script src="./assets/vendor/three.global.js"></script>
@@ -695,6 +752,10 @@
     const guestbookList = document.querySelector("#guestbookList");
     const guestbookClose = document.querySelector("#guestbookClose");
     const guestbookSubmit = document.querySelector("#guestbookSubmit");
+    const stairPrompt = document.querySelector("#stairPrompt");
+    const stairPromptText = document.querySelector("#stairPromptText");
+    const stairMove = document.querySelector("#stairMove");
+    const stairClose = document.querySelector("#stairClose");
     const guestbookEndpoint = "https://script.google.com/macros/s/AKfycbyTdaNVB1gp0iKMoLZuR6uXsef4vCFDhf_eg6y7bMztQtKByw63eroQhkFht-1c3Lld/exec";
     const guestbookCacheKey = "grhs-gallery-guestbook-cache-v1";
     const playlist = [
@@ -709,6 +770,9 @@
     let guestbookCache = [];
     let guestbookLoadedAt = 0;
     let guestbookLoadingPromise = null;
+    let stairPromptSuppressedUntil = 0;
+    let secondFloorStairPromptReadyAt = 0;
+    let worldInputSuppressedUntil = 0;
 
     function loadTrack(index) {
       const nextTrack = playlist[index];
@@ -721,6 +785,7 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation?.();
+      worldInputSuppressedUntil = performance.now() + 520;
       lookDrag.active = false;
       lookDrag.moved = false;
     }
@@ -755,6 +820,8 @@
       else if (button.id === "guideView") runInstantButton(button, event, openGuide);
       else if (button.id === "guideClose") runInstantButton(button, event, closeGuide);
       else if (button.id === "homeView") runInstantButton(button, event, returnHomeFromButton);
+      else if (button.id === "stairMove") runInstantButton(button, event, moveToSecondFloor);
+      else if (button.id === "stairClose") runInstantButton(button, event, closeStairPrompt);
       else if (button.dataset.music) runInstantButton(button, event, controlMusicFromButton);
     }
 
@@ -923,6 +990,52 @@
       returnHome();
     }
 
+    function isOnSecondFloor() {
+      return target.y > 8 || current.y > 8;
+    }
+
+    function isWorldInputSuppressed() {
+      return performance.now() < worldInputSuppressedUntil;
+    }
+
+    function canOpenStairPrompt() {
+      const now = performance.now();
+      if (now < stairPromptSuppressedUntil) return false;
+      if (isOnSecondFloor() && now < secondFloorStairPromptReadyAt) return false;
+      return true;
+    }
+
+    function openStairPrompt() {
+      if (!canOpenStairPrompt()) return;
+      stairPromptText.textContent = isOnSecondFloor() ? "1층 전시장으로 이동하겠습니까?" : "2층 전시장으로 이동하겠습니까?";
+      if (!stairPrompt.classList.contains("is-hidden")) return;
+      stairPrompt.classList.remove("is-hidden");
+    }
+
+    function closeStairPrompt(event) {
+      if (event) consumeModalEvent(event);
+      if (stairPrompt.classList.contains("is-hidden")) return;
+      stairPrompt.classList.add("is-hidden");
+      stairPromptSuppressedUntil = performance.now() + 900;
+    }
+
+    function moveToSecondFloor(event) {
+      consumeModalEvent(event);
+      closeStairPrompt();
+      viewingArt = null;
+      if (isOnSecondFloor()) {
+        stairPromptSuppressedUntil = performance.now() + 1200;
+        secondFloorStairPromptReadyAt = 0;
+        Object.assign(target, { x: 0, y: 1.75, z: 2.8, yaw: 0, pitch: 0, fov: 58 });
+        updateCaption({ title: "1층 전시장", artist: "명작 10점이 걸린 밝은 1층 전시장입니다." });
+        return;
+      }
+      stairPromptSuppressedUntil = performance.now() + 1200;
+      secondFloorStairPromptReadyAt = performance.now() + 4000;
+      Object.assign(target, { x: 0, y: 10.55, z: 4.4, yaw: Math.PI, pitch: 0, fov: 58 });
+      updateCaption({ title: "2층 전시장", artist: "아직 작품을 기다리는 빈 액자 10개가 걸려 있습니다." });
+    }
+
     function controlMusicFromButton(event) {
       consumeModalEvent(event);
       const button = event.currentTarget?.dataset?.music ? event.currentTarget : event.target.closest?.("[data-music]");
@@ -956,6 +1069,8 @@
     bindInstantButton(guideView, openGuide);
     bindInstantButton(guideClose, closeGuide);
     bindInstantButton(guestbookClose, closeGuestbook);
+    bindInstantButton(stairMove, moveToSecondFloor);
+    bindInstantButton(stairClose, closeStairPrompt);
 
     ["pointerdown", "touchstart", "mousedown", "click"].forEach(eventName => {
       document.addEventListener(eventName, handleInstantButtonCapture, { capture: true, passive: false });
@@ -1103,6 +1218,10 @@
       pitch: 0,
       fov: 58
     };
+    const secondFloorHomePosition = {
+      ...homePosition,
+      y: 10.47
+    };
     const target = { ...homePosition };
     const current = { ...target };
     const lookDrag = {
@@ -1237,18 +1356,20 @@
 
     const skyTexture = makeTexture((ctx, canvas) => {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, "#81c8ff");
-      gradient.addColorStop(.55, "#cfeeff");
+      gradient.addColorStop(0, "#58b9ff");
+      gradient.addColorStop(.42, "#aee4ff");
+      gradient.addColorStop(.78, "#eaf9ff");
       gradient.addColorStop(1, "#ffffff");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < 16; i += 1) {
+      for (let i = 0; i < 9; i += 1) {
         const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height * .55 + 50;
-        const w = 110 + Math.random() * 170;
-        const h = 28 + Math.random() * 46;
+        const y = Math.random() * canvas.height * .38 + 58;
+        const w = 120 + Math.random() * 190;
+        const h = 22 + Math.random() * 34;
         const cloud = ctx.createRadialGradient(x, y, 4, x, y, w);
-        cloud.addColorStop(0, "rgba(255,255,255,.82)");
+        cloud.addColorStop(0, "rgba(255,255,255,.68)");
+        cloud.addColorStop(.46, "rgba(255,255,255,.28)");
         cloud.addColorStop(1, "rgba(255,255,255,0)");
         ctx.fillStyle = cloud;
         ctx.beginPath();
@@ -1278,8 +1399,15 @@
     }
 
     function returnHome() {
+      const wasOnSecondFloor = isOnSecondFloor();
       viewingArt = null;
-      Object.assign(target, homePosition);
+      closeStairPrompt();
+      Object.assign(target, wasOnSecondFloor ? secondFloorHomePosition : homePosition);
+      if (wasOnSecondFloor) {
+        secondFloorStairPromptReadyAt = performance.now() + 4000;
+        updateCaption({ title: "2층 전시장", artist: "2층 전시장의 원래 위치로 돌아왔습니다." });
+        return;
+      }
       updateCaption({ title: "전시장 입구", artist: "명작 10점을 밝은 베이지 톤의 가상 갤러리에 걸어두었습니다." });
     }
 
@@ -1314,6 +1442,11 @@
     addBox(.16, .16, 8.2, 4.88, .16, 8.9, trimMaterial, { title: "계단 홀 오른쪽 하단 라인", artist: "선택한 구조물 근처로 이동합니다.", surface: "rightWall" });
     addBox(.16, .16, 56, -4.88, 8.33, -23, trimMaterial, { title: "왼쪽 천장 라인", artist: "선택한 구조물 아래로 이동합니다.", surface: "leftWall" });
     addBox(.16, .16, 56, 4.88, 8.33, -23, trimMaterial, { title: "오른쪽 천장 라인", artist: "선택한 구조물 아래로 이동합니다.", surface: "rightWall" });
+    addBox(9.7, .18, 56, 0, 8.48, -23, wallMaterial, {
+      title: "1층 단색 천장",
+      artist: "좌우 벽면과 같은 톤으로 정리한 심플한 천장입니다.",
+      surface: "ceiling"
+    });
 
     function makeArcPoints(centerX, centerZ, radius, startAngle, sweep, count, yOffset = 0, rise = 0) {
       return Array.from({ length: count }, (_, index) => {
@@ -1349,6 +1482,7 @@
       const staircaseSubject = {
         title: "2층으로 이어지는 나선 계단",
         artist: "계단 홀을 가득 채우며 밝은 위층으로 이어지는 구겐하임식 계단입니다.",
+        portal: "secondFloor",
         view: { x: 0, y: 1.76, z: 5.8, yaw: Math.PI, pitch: .08 }
       };
 
@@ -1470,32 +1604,159 @@
       hitbox.position.set(0, 4.8, 9.08);
       registerSubject(hitbox, staircaseSubject);
       world.add(hitbox);
+
+      const upperHitbox = new THREE.Mesh(
+        new THREE.BoxGeometry(8.9, 2.6, 7.3),
+        hitboxMaterial
+      );
+      upperHitbox.position.set(0, 9.6, 9.08);
+      registerSubject(upperHitbox, staircaseSubject);
+      world.add(upperHitbox);
     }
 
     addGuggenheimStairs();
 
-    const sky = new THREE.Mesh(
-      new THREE.PlaneGeometry(14, 64),
-      new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide })
-    );
-    sky.rotation.x = -Math.PI / 2;
-    sky.position.set(0, 9.2, -23);
-    world.add(sky);
-    registerSubject(sky, { title: "유리천장 너머 하늘", artist: "하늘이 보이는 지점 아래로 이동합니다.", surface: "ceiling" });
+    function addSecondFloorFrame(frame, index) {
+      const floorY = 8.72;
+      const group = new THREE.Group();
+      const wallX = frame.side === "left" ? -4.84 : 4.84;
+      group.position.set(wallX, floorY + 2.22, frame.z);
+      group.rotation.y = frame.side === "left" ? Math.PI / 2 : -Math.PI / 2;
 
-    const glassRoof = new THREE.Mesh(new THREE.PlaneGeometry(9.2, 54), glassMaterial);
-    glassRoof.rotation.x = -Math.PI / 2;
-    glassRoof.position.set(0, 8.5, -23);
-    glassRoof.receiveShadow = true;
-    world.add(glassRoof);
-    registerSubject(glassRoof, { title: "유리천장", artist: "천장 아래에서 하늘을 올려다봅니다.", surface: "ceiling" });
+      const art = {
+        title: `2층 빈 액자 ${index + 1}`,
+        artist: "새로운 작품을 기다리는 2층 전시장 액자입니다.",
+        side: frame.side,
+        z: frame.z,
+        width: frame.width,
+        height: frame.height,
+        floorY
+      };
 
-    for (let z = -48; z <= 2; z += 6) {
-      addBox(9.35, .08, .08, 0, 8.56, z, trimMaterial, { title: "유리천장 프레임", artist: "선택한 천장 프레임 아래로 이동합니다.", surface: "ceiling" });
+      const outer = new THREE.Mesh(
+        new THREE.BoxGeometry(frame.width + .34, frame.height + .34, .18),
+        frameMaterial
+      );
+      outer.position.z = -.08;
+      outer.castShadow = true;
+      outer.receiveShadow = true;
+      outer.userData = { kind: "art", art, index, group };
+      group.add(outer);
+      interactive.push(outer);
+
+      const blank = new THREE.Mesh(
+        new THREE.PlaneGeometry(frame.width, frame.height),
+        new THREE.MeshStandardMaterial({ color: "#f8f5ed", roughness: .74, metalness: .01 })
+      );
+      blank.position.z = .025;
+      blank.castShadow = true;
+      blank.userData = { kind: "art", art, index, group };
+      group.add(blank);
+      interactive.push(blank);
+
+      const innerLine = new THREE.Mesh(
+        new THREE.RingGeometry(.62, .65, 4),
+        new THREE.MeshBasicMaterial({ color: "#d7cab2", side: THREE.DoubleSide })
+      );
+      innerLine.scale.set(frame.width * .85, frame.height * .85, 1);
+      innerLine.rotation.z = Math.PI / 4;
+      innerLine.position.z = .035;
+      group.add(innerLine);
+
+      world.add(group);
     }
-    addBox(.1, .1, 54, -4.65, 8.57, -23, trimMaterial, { title: "왼쪽 천장 프레임", artist: "선택한 구조물 아래로 이동합니다.", surface: "leftWall" });
-    addBox(.1, .1, 54, 4.65, 8.57, -23, trimMaterial, { title: "오른쪽 천장 프레임", artist: "선택한 구조물 아래로 이동합니다.", surface: "rightWall" });
 
+    function addSecondFloorGallery() {
+      const floorY = 8.72;
+      const galleryZ = -12.4;
+      const galleryDepth = 42.5;
+      const wallHeight = 7.4;
+      const wallY = floorY + wallHeight / 2;
+      const secondFloorSubject = {
+        title: "2층 전시장",
+        artist: "새로운 전시를 준비 중인 2층 공간입니다.",
+        view: { x: 0, y: floorY + 1.83, z: 2.6, yaw: Math.PI, pitch: 0 }
+      };
+
+      addBox(10, .18, galleryDepth, 0, floorY, galleryZ, floorMaterial, secondFloorSubject);
+      addBox(.2, wallHeight, galleryDepth, -5, wallY, galleryZ, wallMaterial, {
+        title: "2층 왼쪽 전시 벽",
+        artist: "2층 전시장 왼쪽 벽면입니다.",
+        view: { x: -2.75, y: floorY + 1.82, z: -12.4, yaw: 1.18, pitch: 0 }
+      });
+      addBox(.2, wallHeight, galleryDepth, 5, wallY, galleryZ, wallMaterial, {
+        title: "2층 오른쪽 전시 벽",
+        artist: "2층 전시장 오른쪽 벽면입니다.",
+        view: { x: 2.75, y: floorY + 1.82, z: -12.4, yaw: -1.18, pitch: 0 }
+      });
+      addBox(10, wallHeight, .2, 0, wallY, galleryZ - galleryDepth / 2, wallMaterial, {
+        title: "2층 전시장 끝 벽",
+        artist: "2층 전시장 안쪽 끝입니다.",
+        view: { x: 0, y: floorY + 1.82, z: galleryZ - galleryDepth / 2 + 4.5, yaw: 0, pitch: 0 }
+      });
+
+      addBox(.16, .16, galleryDepth, -4.88, floorY + .16, galleryZ, trimMaterial, secondFloorSubject);
+      addBox(.16, .16, galleryDepth, 4.88, floorY + .16, galleryZ, trimMaterial, secondFloorSubject);
+      addBox(.16, .16, galleryDepth, -4.88, floorY + wallHeight - .12, galleryZ, trimMaterial, secondFloorSubject);
+      addBox(.16, .16, galleryDepth, 4.88, floorY + wallHeight - .12, galleryZ, trimMaterial, secondFloorSubject);
+
+      const secondFloorSky = new THREE.Mesh(
+        new THREE.PlaneGeometry(14, galleryDepth),
+        new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide })
+      );
+      secondFloorSky.rotation.x = -Math.PI / 2;
+      secondFloorSky.position.set(0, floorY + wallHeight + .75, galleryZ);
+      world.add(secondFloorSky);
+      registerSubject(secondFloorSky, {
+        title: "2층 유리천장 너머 하늘",
+        artist: "2층 전시장 위로 맑은 하늘이 보입니다.",
+        view: { x: 0, y: floorY + 1.78, z: -10, yaw: Math.PI, pitch: .34 }
+      });
+
+      const secondFloorGlassRoof = new THREE.Mesh(new THREE.PlaneGeometry(9.2, galleryDepth - 2), glassMaterial);
+      secondFloorGlassRoof.rotation.x = -Math.PI / 2;
+      secondFloorGlassRoof.position.set(0, floorY + wallHeight + .1, galleryZ - .5);
+      secondFloorGlassRoof.receiveShadow = true;
+      world.add(secondFloorGlassRoof);
+      registerSubject(secondFloorGlassRoof, {
+        title: "2층 유리천장",
+        artist: "2층 전시장에 설치된 하늘빛 유리천장입니다.",
+        view: { x: 0, y: floorY + 1.78, z: -10, yaw: Math.PI, pitch: .34 }
+      });
+
+      for (let z = galleryZ - galleryDepth / 2 + 3; z <= galleryZ + galleryDepth / 2 - 3; z += 6) {
+        addBox(9.35, .08, .08, 0, floorY + wallHeight + .16, z, trimMaterial, {
+          title: "2층 유리천장 프레임",
+          artist: "2층 유리천장의 얇은 프레임입니다.",
+          view: { x: 0, y: floorY + 1.78, z: THREE.MathUtils.clamp(z + 1.2, -30, 2.6), yaw: Math.PI, pitch: .28 }
+        });
+      }
+      addBox(.1, .1, galleryDepth - 2, -4.65, floorY + wallHeight + .17, galleryZ - .5, trimMaterial, {
+        title: "2층 왼쪽 천장 프레임",
+        artist: "2층 유리천장의 측면 프레임입니다.",
+        view: { x: -2.35, y: floorY + 1.78, z: -10, yaw: 1.05, pitch: .26 }
+      });
+      addBox(.1, .1, galleryDepth - 2, 4.65, floorY + wallHeight + .17, galleryZ - .5, trimMaterial, {
+        title: "2층 오른쪽 천장 프레임",
+        artist: "2층 유리천장의 측면 프레임입니다.",
+        view: { x: 2.35, y: floorY + 1.78, z: -10, yaw: -1.05, pitch: .26 }
+      });
+
+      [
+        { side: "left", z: 2.1, width: 2.15, height: 2.7 },
+        { side: "right", z: .2, width: 2.55, height: 2.15 },
+        { side: "left", z: -5.2, width: 2.6, height: 2.35 },
+        { side: "right", z: -7.1, width: 2.15, height: 2.85 },
+        { side: "left", z: -12.5, width: 2.3, height: 2.3 },
+        { side: "right", z: -14.4, width: 2.75, height: 2.15 },
+        { side: "left", z: -19.8, width: 2.05, height: 2.85 },
+        { side: "right", z: -21.7, width: 2.35, height: 2.45 },
+        { side: "left", z: -27.1, width: 2.7, height: 2.1 },
+        { side: "right", z: -29, width: 2.1, height: 2.75 }
+      ].forEach(addSecondFloorFrame);
+    }
+
+    addSecondFloorGallery();
     scene.add(new THREE.HemisphereLight("#ffffff", "#d9c7aa", 1.85));
 
     const sun = new THREE.DirectionalLight("#ffffff", 2.6);
@@ -1931,7 +2192,11 @@
     }
 
     function isUiEvent(event) {
-      return !!event.target.closest?.(".toolbar, .welcome-modal, .caption, .home-control");
+      return !!event.target.closest?.(".toolbar, .welcome-modal, .stair-prompt, .caption, .home-control");
+    }
+
+    function isStairPortal(mesh) {
+      return mesh?.userData?.subject?.portal === "secondFloor";
     }
 
     function moveCharacterCursor(event) {
@@ -1983,6 +2248,7 @@
 
     function inspectArtwork(mesh) {
       const art = mesh.userData.art;
+      const floorY = art.floorY || 0;
       viewingArt = mesh;
       updateCaption(art);
       if (art.side === "end") {
@@ -1995,7 +2261,7 @@
         target.yaw = art.side === "left" ? 1.18 : -1.18;
       }
       target.pitch = 0;
-      target.y = 1.85;
+      target.y = floorY + 1.85;
       mount.style.cursor = "default";
     }
 
@@ -2038,6 +2304,10 @@
     function inspectSubject(mesh, point) {
       const subject = mesh.userData.subject;
       if (!subject) return;
+      if (subject.portal === "secondFloor") {
+        openStairPrompt();
+        return;
+      }
       viewingArt = mesh;
       updateCaption(subject);
       Object.assign(target, subject.view || viewFromPoint(point, subject));
@@ -2046,6 +2316,11 @@
 
     window.addEventListener("pointermove", event => {
       moveCharacterCursor(event);
+      if (isWorldInputSuppressed()) {
+        lookDrag.active = false;
+        lookDrag.moved = false;
+        return;
+      }
       if (isUiEvent(event)) return;
       updateLookDrag(event);
       if (event.pointerType === "touch" || viewingArt || lookDrag.active) return;
@@ -2054,6 +2329,7 @@
       const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
       mount.style.cursor = hit ? "zoom-in" : "default";
       characterCursor?.classList.toggle("is-hovering", !!hit);
+      if (isStairPortal(hit)) openStairPrompt();
       if (hit?.userData.kind === "person") {
         if (hit !== hoveredArt) {
           hoveredArt = hit;
@@ -2076,6 +2352,11 @@
       characterCursor?.classList.remove("is-active");
       if (event.pointerType === "touch") {
         moveCharacterCursor(event);
+      }
+      if (isWorldInputSuppressed()) {
+        lookDrag.active = false;
+        lookDrag.moved = false;
+        return;
       }
       if (isUiEvent(event)) {
         lookDrag.active = false;
@@ -2100,6 +2381,11 @@
     });
 
     window.addEventListener("pointerdown", event => {
+      if (isWorldInputSuppressed()) {
+        lookDrag.active = false;
+        lookDrag.moved = false;
+        return;
+      }
       if (!event.target.closest?.(".home-control")) closeHomeMenu();
       if (!isUiEvent(event)) {
         moveCharacterCursor(event);
@@ -2128,6 +2414,7 @@
     });
 
     window.addEventListener("touchstart", event => {
+      if (isWorldInputSuppressed()) return;
       if (isUiEvent(event) || event.touches.length !== 2) return;
       event.preventDefault();
       const metrics = getTouchMetrics(event.touches);
@@ -2144,6 +2431,7 @@
     }, { passive: false });
 
     window.addEventListener("touchmove", event => {
+      if (isWorldInputSuppressed()) return;
       if (!touchGesture.active || event.touches.length !== 2 || isUiEvent(event)) return;
       event.preventDefault();
       const metrics = getTouchMetrics(event.touches);
@@ -2183,6 +2471,7 @@
 
     window.addEventListener("wheel", event => {
       event.preventDefault();
+      if (isWorldInputSuppressed()) return;
       viewingArt = null;
       if (Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.15) {
         target.yaw -= event.deltaX * .002;
