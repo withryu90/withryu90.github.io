@@ -1370,12 +1370,25 @@
       roughness: .42,
       metalness: .04
     });
+    const guardFenceMaterial = new THREE.MeshStandardMaterial({
+      color: "#fffdf7",
+      roughness: .36,
+      metalness: .04
+    });
+    const guardGlassMaterial = new THREE.MeshPhysicalMaterial({
+      color: "#f6fdff",
+      roughness: .05,
+      metalness: 0,
+      transmission: .35,
+      transparent: true,
+      opacity: .34,
+      side: THREE.DoubleSide
+    });
     const guggenheimShadowMaterial = new THREE.MeshStandardMaterial({
       color: "#d9d2c5",
       roughness: .7,
       metalness: .02
     });
-
     const skyTexture = makeTexture((ctx, canvas) => {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, "#58b9ff");
@@ -1718,15 +1731,15 @@
       });
 
       const stairGuardSubject = {
-        title: "2층 계단 난간벽",
-        artist: "2층 바닥마감 가장자리에 맞춰 세운 흰 기둥형 난간벽입니다.",
-        view: { x: 1.7, y: floorY + 1.72, z: 5.25, yaw: Math.PI, pitch: -.02 }
+        title: "2층 계단 안전 난간",
+        artist: "투명한 유리벽에 흰색 테두리 몰딩을 둘러 만든 안전 난간입니다.",
+        view: { x: 2.05, y: floorY + 1.72, z: 7.15, yaw: Math.PI, pitch: -.02 }
       };
-      addBox(.52, 2.96, 6.75, 4.45, floorY + 1.5, 8.95, wallMaterial, stairGuardSubject);
-      addBox(1.95, 2.96, .5, 3.55, floorY + 1.5, 5.55, wallMaterial, stairGuardSubject);
-      addBox(.72, 3.8, .72, 4.45, floorY + 1.9, 5.55, wallMaterial, stairGuardSubject);
-      addBox(.72, 3.8, .72, 4.45, floorY + 1.9, 12.45, wallMaterial, stairGuardSubject);
-      addBox(.18, .12, 6.75, 4.45, floorY + 3.02, 8.95, trimMaterial, stairGuardSubject);
+      addBox(4.92, 1.52, .045, 2.05, floorY + .92, 8.61, guardGlassMaterial, stairGuardSubject);
+      addBox(5.25, .13, .18, 2.05, floorY + 1.68, 8.52, guardFenceMaterial, stairGuardSubject);
+      addBox(5.25, .12, .16, 2.05, floorY + .06, 8.52, guardFenceMaterial, stairGuardSubject);
+      addBox(.13, 1.74, .18, -.51, floorY + .87, 8.52, guardFenceMaterial, stairGuardSubject);
+      addBox(.13, 1.74, .18, 4.61, floorY + .87, 8.52, guardFenceMaterial, stairGuardSubject);
 
       addBox(.16, .16, galleryDepth, -4.88, floorY + .16, galleryZ, trimMaterial, secondFloorSubject);
       addBox(.16, .16, galleryDepth, 4.88, floorY + .16, galleryZ, trimMaterial, secondFloorSubject);
@@ -2378,7 +2391,6 @@
       const hit = getInteractiveHit(event)?.object;
       mount.style.cursor = hit ? "zoom-in" : "default";
       characterCursor?.classList.toggle("is-hovering", !!hit);
-      if (isStairPortal(hit)) openStairPrompt();
       if (hit?.userData.kind === "person") {
         if (hit !== hoveredArt) {
           hoveredArt = hit;
