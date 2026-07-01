@@ -592,6 +592,51 @@
         height: 52px;
       }
     }
+
+    @media (pointer: coarse), (max-width: 900px) {
+      .caption {
+        left: 10px;
+        bottom: 10px;
+        width: min(180px, 43vw);
+        min-height: 48px;
+        padding: 8px 9px;
+      }
+
+      .caption b {
+        font-size: clamp(.72rem, 3.2vw, .9rem);
+        line-height: 1.04;
+      }
+
+      .caption span {
+        margin-top: 3px;
+        font-size: .6rem;
+        line-height: 1.18;
+      }
+
+      .home-control {
+        right: 10px;
+        bottom: 10px;
+        max-width: 92px;
+        gap: 6px;
+      }
+
+      .home-control button {
+        min-width: 86px;
+        height: 34px;
+        padding: 0 8px;
+        font-size: .7rem;
+      }
+
+      .home-menu-items {
+        gap: 6px;
+      }
+
+      .home-menu-toggle {
+        width: 44px;
+        min-width: 44px;
+        height: 34px;
+      }
+    }
   </style>
 </head>
 <body>
