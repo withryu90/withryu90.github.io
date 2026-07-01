@@ -211,6 +211,34 @@
       z-index: 4;
       display: grid;
       gap: 8px;
+      justify-items: end;
+      pointer-events: auto;
+    }
+
+    .home-menu-toggle {
+      width: 46px;
+      min-width: 46px;
+      padding: 0;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .home-menu-items {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+      pointer-events: none;
+    }
+
+    .home-control.is-open .home-menu-items {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
       pointer-events: auto;
     }
 
@@ -370,7 +398,7 @@
     }
 
     .welcome-panel {
-      width: min(560px, calc(100vw - 32px));
+      width: min(560px, 100%);
       padding: clamp(24px, 5vw, 42px);
       border: 1px solid rgba(41, 36, 31, .16);
       border-radius: 8px;
@@ -491,7 +519,7 @@
 
       .caption {
         min-height: 86px;
-        bottom: 76px;
+        bottom: 16px;
       }
 
       .progress {
@@ -500,7 +528,7 @@
 
       .home-control {
         right: 16px;
-        bottom: 18px;
+        bottom: 16px;
       }
     }
 
@@ -528,17 +556,20 @@
       <button type="button" data-music="play" aria-label="배경음악 재생" title="배경음악 재생"><span class="music-icon play" aria-hidden="true"></span></button>
       <button type="button" data-music="pause" aria-label="배경음악 일시정지" title="배경음악 일시정지"><span class="music-icon pause" aria-hidden="true"></span></button>
       <button type="button" data-music="stop" aria-label="배경음악 중지" title="배경음악 중지"><span class="music-icon stop" aria-hidden="true"></span></button>
-      <button id="resetView" type="button" aria-label="처음 위치로">↺</button>
+      <button type="button" data-music="shuffle" aria-label="랜덤 음악 재생" title="랜덤 음악 재생">⤨</button>
     </div>
   </div>
   <aside class="caption" aria-live="polite">
     <b id="artTitle">전시장 입구</b>
     <span id="artMeta">밝은 베이지 톤의 가상 전시장에 명작 10점을 걸어두었습니다.</span>
   </aside>
-  <div class="home-control">
-    <button id="guestbookView" type="button">감상 한줄평</button>
-    <button id="guideView" type="button">갤러리 가이드</button>
-    <button id="homeView" type="button">원래 위치로 이동</button>
+  <div class="home-control" id="homeMenu">
+    <div class="home-menu-items" id="homeMenuItems">
+      <button id="guestbookView" type="button">감상 한줄평</button>
+      <button id="guideView" type="button">갤러리 가이드</button>
+      <button id="homeView" type="button">원래 위치로 이동</button>
+    </div>
+    <button class="home-menu-toggle" id="homeMenuToggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="homeMenuItems">Menu</button>
   </div>
   <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   <div class="vignette" aria-hidden="true"></div>
@@ -579,7 +610,8 @@
     const titleEl = document.querySelector("#artTitle");
     const metaEl = document.querySelector("#artMeta");
     const progressBar = document.querySelector("#progressBar");
-    const resetView = document.querySelector("#resetView");
+    const homeMenu = document.querySelector("#homeMenu");
+    const homeMenuToggle = document.querySelector("#homeMenuToggle");
     const guestbookView = document.querySelector("#guestbookView");
     const guideView = document.querySelector("#guideView");
     const homeView = document.querySelector("#homeView");
@@ -649,11 +681,12 @@
       const button = event.target.closest?.("button");
       if (!button) return;
       if (button.id === "welcomeClose") runInstantButton(button, event, enterGallery);
+      else if (button.id === "homeMenuToggle") runInstantButton(button, event, toggleHomeMenu);
       else if (button.id === "guestbookView") runInstantButton(button, event, openGuestbook);
       else if (button.id === "guestbookClose") runInstantButton(button, event, closeGuestbook);
       else if (button.id === "guideView") runInstantButton(button, event, openGuide);
       else if (button.id === "guideClose") runInstantButton(button, event, closeGuide);
-      else if (button.id === "homeView" || button.id === "resetView") runInstantButton(button, event, returnHomeFromButton);
+      else if (button.id === "homeView") runInstantButton(button, event, returnHomeFromButton);
       else if (button.dataset.music) runInstantButton(button, event, controlMusicFromButton);
     }
 
@@ -667,7 +700,21 @@
 
     function openGuide(event) {
       consumeModalEvent(event);
+      closeHomeMenu();
       guideModal.classList.remove("is-hidden");
+    }
+
+    function closeHomeMenu() {
+      homeMenu.classList.remove("is-open");
+      homeMenuToggle.setAttribute("aria-expanded", "false");
+      homeMenuToggle.setAttribute("aria-label", "메뉴 열기");
+    }
+
+    function toggleHomeMenu(event) {
+      consumeModalEvent(event);
+      const isOpen = homeMenu.classList.toggle("is-open");
+      homeMenuToggle.setAttribute("aria-expanded", String(isOpen));
+      homeMenuToggle.setAttribute("aria-label", isOpen ? "메뉴 닫기" : "메뉴 열기");
     }
 
     function renderGuestbook(entries = []) {
@@ -781,6 +828,7 @@
 
     function openGuestbook(event) {
       consumeModalEvent(event);
+      closeHomeMenu();
       if (!guestbookCache.length) readGuestbookCache();
       if (guestbookCache.length) renderGuestbook(guestbookCache);
       else renderGuestbookMessage("한줄평을 불러오는 중입니다.");
@@ -803,6 +851,7 @@
 
     function returnHomeFromButton(event) {
       consumeModalEvent(event);
+      closeHomeMenu();
       returnHome();
     }
 
@@ -813,6 +862,14 @@
       if (button.dataset.music === "play") {
         shouldAutoPlay = true;
         startBackgroundMusic();
+      }
+      if (button.dataset.music === "shuffle") {
+        shouldAutoPlay = true;
+        const offset = playlist.length > 1 ? Math.floor(Math.random() * (playlist.length - 1)) + 1 : 0;
+        trackIndex = (trackIndex + offset) % playlist.length;
+        loadTrack(trackIndex);
+        musicPlayer.currentTime = 0;
+        musicPlayer.play().catch(() => {});
       }
       if (button.dataset.music === "pause") {
         shouldAutoPlay = false;
@@ -826,6 +883,7 @@
     }
 
     bindInstantButton(welcomeClose, enterGallery);
+    bindInstantButton(homeMenuToggle, toggleHomeMenu);
     bindInstantButton(guestbookView, openGuestbook);
     bindInstantButton(guideView, openGuide);
     bindInstantButton(guideClose, closeGuide);
@@ -1982,6 +2040,7 @@
     });
 
     window.addEventListener("pointerdown", event => {
+      if (!event.target.closest?.(".home-control")) closeHomeMenu();
       if (!isUiEvent(event)) {
         moveCharacterCursor(event);
         characterCursor?.classList.add("is-active");
@@ -2076,25 +2135,6 @@
       event.stopPropagation();
     });
 
-    document.querySelectorAll("[data-music]").forEach(button => {
-      button.addEventListener("click", () => {
-        if (button.dataset.music === "play") {
-          shouldAutoPlay = true;
-          loadTrack(trackIndex);
-          musicPlayer.play().catch(() => {});
-        }
-        if (button.dataset.music === "pause") {
-          shouldAutoPlay = false;
-          musicPlayer.pause();
-        }
-        if (button.dataset.music === "stop") {
-          shouldAutoPlay = false;
-          musicPlayer.pause();
-          musicPlayer.currentTime = 0;
-        }
-      });
-    });
-
     function startBackgroundMusic() {
       if (!shouldAutoPlay || !musicPlayer.paused) return;
       loadTrack(trackIndex);
@@ -2111,7 +2151,6 @@
       if (shouldAutoPlay) musicPlayer.play().catch(() => {});
     });
 
-    resetView.addEventListener("click", returnHome);
     homeView.addEventListener("click", returnHome);
 
     window.addEventListener("resize", () => {
