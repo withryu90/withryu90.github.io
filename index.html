@@ -73,6 +73,25 @@
       text-wrap: balance;
     }
 
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: clamp(8px, 1.4vw, 14px);
+      max-width: min(620px, 66vw);
+    }
+
+    .brand-title img {
+      width: clamp(1.5rem, 3.9vw, 4.05rem);
+      height: clamp(1.5rem, 3.9vw, 4.05rem);
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .brand-title h2 {
+      max-width: none;
+      font-size: clamp(1.5rem, 3.9vw, 4.05rem);
+    }
+
     .toolbar {
       display: flex;
       gap: 8px;
@@ -129,6 +148,14 @@
       width: 24px;
       height: 24px;
       background: currentColor;
+    }
+
+    .music-icon.shuffle {
+      width: 28px;
+      height: 28px;
+      background: currentColor;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cg fill='none' stroke='black' stroke-width='4.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h4.4c3.9 0 5.2 12 9.2 12H25'/%3E%3Cpath d='M20 15l5 5-5 5'/%3E%3Cpath d='M3 20h4.4c1.8 0 3-2.5 4.2-5'/%3E%3Cpath d='M15.5 10.5C16.8 8.9 18 8 19.8 8H25'/%3E%3Cpath d='M20 3l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cg fill='none' stroke='black' stroke-width='4.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h4.4c3.9 0 5.2 12 9.2 12H25'/%3E%3Cpath d='M20 15l5 5-5 5'/%3E%3Cpath d='M3 20h4.4c1.8 0 3-2.5 4.2-5'/%3E%3Cpath d='M15.5 10.5C16.8 8.9 18 8 19.8 8H25'/%3E%3Cpath d='M20 3l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
     }
 
     button {
@@ -612,6 +639,20 @@
         font-size: clamp(1.35rem, 7vw, 2rem);
       }
 
+      .brand-title {
+        max-width: calc(100vw - 232px);
+        gap: 8px;
+      }
+
+      .brand-title img {
+        width: clamp(1.05rem, 5.25vw, 1.5rem);
+        height: clamp(1.05rem, 5.25vw, 1.5rem);
+      }
+
+      .brand-title h2 {
+        font-size: clamp(1.05rem, 5.25vw, 1.5rem);
+      }
+
       .toolbar {
         max-width: 192px;
         flex-wrap: wrap;
@@ -742,12 +783,15 @@
     <img src="assets/cursor/gallery-character.png" alt="" />
   </div>
   <div class="topbar">
-    <h2>GRHS ART SPACE</h2>
+    <div class="brand-title">
+      <img src="assets/brand/grhs-emblem.png" alt="" />
+      <h2>GRHS ART SPACE</h2>
+    </div>
     <div class="toolbar">
       <button type="button" data-music="play" aria-label="배경음악 재생" title="배경음악 재생"><span class="music-icon play" aria-hidden="true"></span></button>
       <button type="button" data-music="pause" aria-label="배경음악 일시정지" title="배경음악 일시정지"><span class="music-icon pause" aria-hidden="true"></span></button>
       <button type="button" data-music="stop" aria-label="배경음악 중지" title="배경음악 중지"><span class="music-icon stop" aria-hidden="true"></span></button>
-      <button type="button" data-music="shuffle" aria-label="랜덤 음악 재생" title="랜덤 음악 재생">⤨</button>
+      <button type="button" data-music="shuffle" aria-label="랜덤 음악 재생" title="랜덤 음악 재생"><span class="music-icon shuffle" aria-hidden="true"></span></button>
     </div>
   </div>
   <aside class="caption" aria-live="polite">
@@ -869,6 +913,7 @@
     let stairPromptSuppressedUntil = 0;
     let secondFloorStairPromptReadyAt = 0;
     let worldInputSuppressedUntil = 0;
+    let npcBubblePending = false;
 
     function loadTrack(index) {
       const nextTrack = playlist[index];
@@ -940,7 +985,8 @@
       entryGuideModal.classList.add("is-hidden");
       viewingArt = null;
       Object.assign(target, { x: 0, y: 1.72, z: -11.9, yaw: 0, pitch: -.03, fov: 45 });
-      openNpcBubble();
+      npcBubble.classList.add("is-hidden");
+      npcBubblePending = true;
     }
 
     function openNpcBubble() {
@@ -970,6 +1016,7 @@
 
     function closeNpcBubble(event) {
       if (event) consumeModalEvent(event);
+      npcBubblePending = false;
       npcBubble.classList.add("is-hidden");
     }
 
@@ -2422,6 +2469,16 @@
       return from + shortestAngleDelta(from, to) * amount;
     }
 
+    function revealNpcBubbleAfterZoom() {
+      if (!npcBubblePending) return;
+      const positionDistance = Math.hypot(current.x - target.x, current.y - target.y, current.z - target.z);
+      const angleDistance = Math.abs(shortestAngleDelta(current.yaw, target.yaw)) + Math.abs(current.pitch - target.pitch);
+      const zoomDistance = Math.abs(current.fov - target.fov);
+      if (positionDistance > .36 || angleDistance > .06 || zoomDistance > 1.25) return;
+      npcBubblePending = false;
+      openNpcBubble();
+    }
+
     function updateLookDrag(event) {
       if (!lookDrag.active || isUiEvent(event)) return;
       const dx = event.clientX - lookDrag.startX;
@@ -2763,6 +2820,7 @@
         camera.updateProjectionMatrix();
       }
 
+      revealNpcBubbleAfterZoom();
       renderer.render(scene, camera);
     }
 
