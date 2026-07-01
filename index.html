@@ -44,8 +44,7 @@
     }
 
     .topbar,
-    .caption,
-    .progress {
+    .caption {
       position: fixed;
       z-index: 4;
       pointer-events: none;
@@ -183,25 +182,6 @@
       color: var(--muted);
       font-size: .92rem;
       line-height: 1.45;
-    }
-
-    .progress {
-      right: clamp(16px, 3vw, 32px);
-      bottom: clamp(76px, 8vw, 92px);
-      width: min(220px, 34vw);
-      height: 5px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: rgba(72, 58, 42, .16);
-    }
-
-    .progress i {
-      display: block;
-      width: 18%;
-      height: 100%;
-      border-radius: inherit;
-      background: var(--accent);
-      transform-origin: left center;
     }
 
     .home-control {
@@ -535,10 +515,6 @@
         line-height: 1.32;
       }
 
-      .progress {
-        display: none;
-      }
-
       .home-control {
         right: 16px;
         bottom: 16px;
@@ -665,7 +641,6 @@
     </div>
     <button class="home-menu-toggle" id="homeMenuToggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="homeMenuItems">Menu</button>
   </div>
-  <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   <div class="vignette" aria-hidden="true"></div>
   <div class="loading" id="loading">갤러리 조명 조정 중</div>
   <div class="welcome-modal" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeText">
@@ -703,7 +678,6 @@
     const characterCursor = document.querySelector("#characterCursor");
     const titleEl = document.querySelector("#artTitle");
     const metaEl = document.querySelector("#artMeta");
-    const progressBar = document.querySelector("#progressBar");
     const homeMenu = document.querySelector("#homeMenu");
     const homeMenuToggle = document.querySelector("#homeMenuToggle");
     const guestbookView = document.querySelector("#guestbookView");
@@ -1283,10 +1257,6 @@
       }
     });
 
-    function updateProgress() {
-      progressBar.style.transform = `scaleX(${THREE.MathUtils.mapLinear(target.z, 3.2, -46.5, .18, 1)})`;
-    }
-
     function setZoomFov(fov) {
       target.fov = THREE.MathUtils.clamp(fov, 8, 145);
     }
@@ -1311,7 +1281,6 @@
       viewingArt = null;
       Object.assign(target, homePosition);
       updateCaption({ title: "전시장 입구", artist: "명작 10점을 밝은 베이지 톤의 가상 갤러리에 걸어두었습니다." });
-      updateProgress();
     }
 
     function registerSubject(mesh, subject) {
@@ -1962,7 +1931,7 @@
     }
 
     function isUiEvent(event) {
-      return !!event.target.closest?.(".toolbar, .welcome-modal, .caption, .progress, .home-control");
+      return !!event.target.closest?.(".toolbar, .welcome-modal, .caption, .home-control");
     }
 
     function moveCharacterCursor(event) {
@@ -2027,7 +1996,6 @@
       }
       target.pitch = 0;
       target.y = 1.85;
-      updateProgress();
       mount.style.cursor = "default";
     }
 
@@ -2036,7 +2004,6 @@
       viewingArt = mesh;
       updateCaption(person);
       Object.assign(target, person.view);
-      updateProgress();
       mount.style.cursor = "default";
     }
 
@@ -2074,7 +2041,6 @@
       viewingArt = mesh;
       updateCaption(subject);
       Object.assign(target, subject.view || viewFromPoint(point, subject));
-      updateProgress();
       mount.style.cursor = "default";
     }
 
