@@ -427,6 +427,72 @@
       touch-action: manipulation;
     }
 
+    .npc-bubble {
+      position: fixed;
+      left: clamp(14px, 3vw, 32px);
+      top: clamp(96px, 14vh, 132px);
+      z-index: 6;
+      width: min(390px, calc(100vw - 28px));
+      padding: 18px 28px 16px;
+      border: 1px solid rgba(41, 36, 31, .16);
+      border-radius: 999px;
+      background: rgba(255, 255, 252, .96);
+      box-shadow: 0 16px 44px rgba(40, 35, 28, .18);
+      text-align: center;
+      backdrop-filter: blur(16px);
+      pointer-events: auto;
+      user-select: none;
+    }
+
+    .npc-bubble.is-hidden {
+      display: none;
+    }
+
+    .npc-bubble .is-hidden {
+      display: none;
+    }
+
+    .npc-bubble::after {
+      content: "";
+      position: absolute;
+      right: 64px;
+      bottom: -11px;
+      width: 20px;
+      height: 20px;
+      border-right: 1px solid rgba(41, 36, 31, .16);
+      border-bottom: 1px solid rgba(41, 36, 31, .16);
+      background: rgba(255, 255, 252, .96);
+      transform: rotate(45deg);
+    }
+
+    .npc-bubble p {
+      margin: 0;
+      color: var(--ink);
+      font-size: .95rem;
+      line-height: 1.48;
+      word-break: keep-all;
+    }
+
+    .npc-bubble-actions {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .npc-bubble-actions.is-hidden {
+      display: none;
+    }
+
+    .npc-bubble button {
+      width: auto;
+      min-width: 86px;
+      height: 36px;
+      padding: 0 12px;
+      font-size: .84rem;
+      touch-action: manipulation;
+    }
+
     .welcome-panel {
       width: min(560px, 100%);
       padding: clamp(24px, 5vw, 42px);
@@ -736,6 +802,16 @@
       <button id="stairClose" type="button">닫기</button>
     </div>
   </div>
+  <div class="npc-bubble is-hidden" id="npcBubble" aria-live="polite">
+    <p id="npcBubbleText">환영합니다! 저와 잠깐 대화할래요?</p>
+    <div class="npc-bubble-actions" id="npcBubbleChoices">
+      <button id="npcTalkStart" type="button">대화하기</button>
+      <button id="npcTalkSkip" type="button">대화하지 않기</button>
+    </div>
+    <div class="npc-bubble-actions is-hidden" id="npcBubbleCloseWrap">
+      <button id="npcTalkClose" type="button">닫기</button>
+    </div>
+  </div>
   <audio id="musicPlayer" class="music-player" preload="none"></audio>
 
   <script src="./assets/vendor/three.global.js"></script>
@@ -769,6 +845,13 @@
     const stairPromptText = document.querySelector("#stairPromptText");
     const stairMove = document.querySelector("#stairMove");
     const stairClose = document.querySelector("#stairClose");
+    const npcBubble = document.querySelector("#npcBubble");
+    const npcBubbleText = document.querySelector("#npcBubbleText");
+    const npcBubbleChoices = document.querySelector("#npcBubbleChoices");
+    const npcBubbleCloseWrap = document.querySelector("#npcBubbleCloseWrap");
+    const npcTalkStart = document.querySelector("#npcTalkStart");
+    const npcTalkSkip = document.querySelector("#npcTalkSkip");
+    const npcTalkClose = document.querySelector("#npcTalkClose");
     const guestbookEndpoint = "https://script.google.com/macros/s/AKfycbyTdaNVB1gp0iKMoLZuR6uXsef4vCFDhf_eg6y7bMztQtKByw63eroQhkFht-1c3Lld/exec";
     const guestbookCacheKey = "grhs-gallery-guestbook-cache-v1";
     const playlist = [
@@ -836,6 +919,9 @@
       else if (button.id === "homeView") runInstantButton(button, event, returnHomeFromButton);
       else if (button.id === "stairMove") runInstantButton(button, event, moveToSecondFloor);
       else if (button.id === "stairClose") runInstantButton(button, event, closeStairPrompt);
+      else if (button.id === "npcTalkStart") runInstantButton(button, event, showNpcConversation);
+      else if (button.id === "npcTalkSkip") runInstantButton(button, event, insistNpcConversation);
+      else if (button.id === "npcTalkClose") runInstantButton(button, event, closeNpcBubble);
       else if (button.dataset.music) runInstantButton(button, event, controlMusicFromButton);
     }
 
@@ -852,6 +938,39 @@
       consumeModalEvent(event);
       if (entryGuideModal.classList.contains("is-hidden")) return;
       entryGuideModal.classList.add("is-hidden");
+      viewingArt = null;
+      Object.assign(target, { x: 0, y: 1.72, z: -11.9, yaw: 0, pitch: -.03, fov: 45 });
+      openNpcBubble();
+    }
+
+    function openNpcBubble() {
+      npcBubbleText.textContent = "환영합니다! 저와 잠깐 대화할래요?";
+      npcTalkStart.textContent = "대화하기";
+      npcTalkSkip.classList.remove("is-hidden");
+      npcBubbleChoices.classList.remove("is-hidden");
+      npcBubbleCloseWrap.classList.add("is-hidden");
+      npcBubble.classList.remove("is-hidden");
+    }
+
+    function insistNpcConversation(event) {
+      consumeModalEvent(event);
+      npcBubbleText.textContent = "거절은 거절할게!";
+      npcTalkStart.textContent = "계속 대화하기";
+      npcTalkSkip.classList.add("is-hidden");
+      npcBubbleChoices.classList.remove("is-hidden");
+      npcBubbleCloseWrap.classList.add("is-hidden");
+    }
+
+    function showNpcConversation(event) {
+      consumeModalEvent(event);
+      npcBubbleText.textContent = "1층 전시는 인상주의와 관련된 전시에요! 1층 전시를 다 보고 2층 표현주의 전시를 보는 걸 추천합니다.";
+      npcBubbleChoices.classList.add("is-hidden");
+      npcBubbleCloseWrap.classList.remove("is-hidden");
+    }
+
+    function closeNpcBubble(event) {
+      if (event) consumeModalEvent(event);
+      npcBubble.classList.add("is-hidden");
     }
 
     function openGuide(event) {
@@ -1053,7 +1172,7 @@
       }
       stairPromptSuppressedUntil = performance.now() + 1200;
       secondFloorStairPromptReadyAt = performance.now() + 4000;
-      Object.assign(target, { x: 0, y: 10.55, z: 4.4, yaw: Math.PI, pitch: 0, fov: 58 });
+      Object.assign(target, { x: 0, y: 10.55, z: 4.4, yaw: 0, pitch: 0, fov: 58 });
       updateCaption({ title: "2층 전시장", artist: "아직 작품을 기다리는 빈 액자 10개가 걸려 있습니다." });
     }
 
@@ -1093,6 +1212,9 @@
     bindInstantButton(guestbookClose, closeGuestbook);
     bindInstantButton(stairMove, moveToSecondFloor);
     bindInstantButton(stairClose, closeStairPrompt);
+    bindInstantButton(npcTalkStart, showNpcConversation);
+    bindInstantButton(npcTalkSkip, insistNpcConversation);
+    bindInstantButton(npcTalkClose, closeNpcBubble);
 
     ["pointerdown", "touchstart", "mousedown", "click"].forEach(eventName => {
       document.addEventListener(eventName, handleInstantButtonCapture, { capture: true, passive: false });
@@ -1305,12 +1427,12 @@
     const wallTexture = makeTexture((ctx, canvas) => {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, "#ffffff");
-      gradient.addColorStop(.65, "#f7f7f3");
-      gradient.addColorStop(1, "#eeeeea");
+      gradient.addColorStop(.65, "#fdfdfb");
+      gradient.addColorStop(1, "#f8f8f5");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < 900; i += 1) {
-        ctx.fillStyle = `rgba(80, 80, 70, ${Math.random() * .018})`;
+      for (let i = 0; i < 560; i += 1) {
+        ctx.fillStyle = `rgba(110, 110, 100, ${Math.random() * .008})`;
         ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1.4, 1.4);
       }
     });
@@ -1329,7 +1451,7 @@
       color: "#ffffff"
     });
     const trimMaterial = new THREE.MeshStandardMaterial({
-      color: "#f4f4ee",
+      color: "#fbfbf8",
       metalness: .04,
       roughness: .72
     });
@@ -2250,7 +2372,7 @@
     }
 
     function isUiEvent(event) {
-      return !!event.target.closest?.(".toolbar, .welcome-modal, .stair-prompt, .caption, .home-control");
+      return !!event.target.closest?.(".toolbar, .welcome-modal, .stair-prompt, .npc-bubble, .caption, .home-control");
     }
 
     function isStairPortal(mesh) {
