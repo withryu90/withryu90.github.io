@@ -445,6 +445,11 @@
       color: var(--ink);
     }
 
+    .guide-copy {
+      font-size: clamp(.92rem, 2.1vw, 1.12rem);
+      line-height: 1.55;
+    }
+
     .welcome-panel button {
       width: auto;
       min-width: 92px;
@@ -571,7 +576,7 @@
       }
     }
 
-    @media (pointer: coarse), (max-width: 760px) {
+    @media (max-width: 760px) {
       .caption {
         left: 12px;
         bottom: 12px;
@@ -619,7 +624,7 @@
       }
     }
 
-    @media (pointer: coarse), (max-width: 900px) {
+    @media (max-width: 760px) {
       .caption {
         left: 10px;
         bottom: 10px;
@@ -701,8 +706,14 @@
   </div>
   <div class="welcome-modal is-hidden" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideText">
     <div class="welcome-panel">
-      <p id="guideText">커서를 통해 상하좌우로 이동이 가능하고, 피사체를 누르면 가까이에서 들여다 볼 수 있습니다.</p>
+      <p id="guideText" class="guide-copy">커서를 통해 상하좌우로 이동이 가능하며, 작품을 클릭하면 가까이에서 들여다 볼 수 있습니다. 또한 전시장은 2층까지 구성이 되어있어 계단을 통해 이동할 수 있습니다.</p>
       <button id="guideClose" type="button">닫기</button>
+    </div>
+  </div>
+  <div class="welcome-modal is-hidden" id="entryGuideModal" role="dialog" aria-modal="true" aria-labelledby="entryGuideText">
+    <div class="welcome-panel">
+      <p id="entryGuideText" class="guide-copy">메뉴 속 갤러리 가이드를 읽고 관람을 시작해주세요.</p>
+      <button id="entryGuideClose" type="button">닫기</button>
     </div>
   </div>
   <div class="welcome-modal is-hidden" id="guestbookModal" role="dialog" aria-modal="true" aria-labelledby="guestbookTitle">
@@ -746,6 +757,8 @@
     const welcomeClose = document.querySelector("#welcomeClose");
     const guideModal = document.querySelector("#guideModal");
     const guideClose = document.querySelector("#guideClose");
+    const entryGuideModal = document.querySelector("#entryGuideModal");
+    const entryGuideClose = document.querySelector("#entryGuideClose");
     const guestbookModal = document.querySelector("#guestbookModal");
     const guestbookForm = document.querySelector("#guestbookForm");
     const guestbookText = document.querySelector("#guestbookText");
@@ -819,6 +832,7 @@
       else if (button.id === "guestbookClose") runInstantButton(button, event, closeGuestbook);
       else if (button.id === "guideView") runInstantButton(button, event, openGuide);
       else if (button.id === "guideClose") runInstantButton(button, event, closeGuide);
+      else if (button.id === "entryGuideClose") runInstantButton(button, event, closeEntryGuide);
       else if (button.id === "homeView") runInstantButton(button, event, returnHomeFromButton);
       else if (button.id === "stairMove") runInstantButton(button, event, moveToSecondFloor);
       else if (button.id === "stairClose") runInstantButton(button, event, closeStairPrompt);
@@ -829,8 +843,15 @@
       consumeModalEvent(event);
       if (welcomeModal.classList.contains("is-hidden")) return;
       welcomeModal.classList.add("is-hidden");
+      entryGuideModal.classList.remove("is-hidden");
       startBackgroundMusic();
       warmGuestbook();
+    }
+
+    function closeEntryGuide(event) {
+      consumeModalEvent(event);
+      if (entryGuideModal.classList.contains("is-hidden")) return;
+      entryGuideModal.classList.add("is-hidden");
     }
 
     function openGuide(event) {
@@ -1068,6 +1089,7 @@
     bindInstantButton(guestbookView, openGuestbook);
     bindInstantButton(guideView, openGuide);
     bindInstantButton(guideClose, closeGuide);
+    bindInstantButton(entryGuideClose, closeEntryGuide);
     bindInstantButton(guestbookClose, closeGuestbook);
     bindInstantButton(stairMove, moveToSecondFloor);
     bindInstantButton(stairClose, closeStairPrompt);
@@ -1695,6 +1717,17 @@
         view: { x: 0, y: floorY + 1.82, z: galleryZ - galleryDepth / 2 + 4.5, yaw: 0, pitch: 0 }
       });
 
+      const stairGuardSubject = {
+        title: "2층 계단 난간벽",
+        artist: "2층 바닥마감 가장자리에 맞춰 세운 흰 기둥형 난간벽입니다.",
+        view: { x: 1.7, y: floorY + 1.72, z: 5.25, yaw: Math.PI, pitch: -.02 }
+      };
+      addBox(.52, 2.96, 6.75, 4.45, floorY + 1.5, 8.95, wallMaterial, stairGuardSubject);
+      addBox(1.95, 2.96, .5, 3.55, floorY + 1.5, 5.55, wallMaterial, stairGuardSubject);
+      addBox(.72, 3.8, .72, 4.45, floorY + 1.9, 5.55, wallMaterial, stairGuardSubject);
+      addBox(.72, 3.8, .72, 4.45, floorY + 1.9, 12.45, wallMaterial, stairGuardSubject);
+      addBox(.18, .12, 6.75, 4.45, floorY + 3.02, 8.95, trimMaterial, stairGuardSubject);
+
       addBox(.16, .16, galleryDepth, -4.88, floorY + .16, galleryZ, trimMaterial, secondFloorSubject);
       addBox(.16, .16, galleryDepth, 4.88, floorY + .16, galleryZ, trimMaterial, secondFloorSubject);
       addBox(.16, .16, galleryDepth, -4.88, floorY + wallHeight - .12, galleryZ, trimMaterial, secondFloorSubject);
@@ -2141,7 +2174,10 @@
 
     function addNpc(person) {
       const group = new THREE.Group();
-      group.position.set(person.x, 0, person.z);
+      const scale = person.scale || 1;
+      const baseY = person.y || 0;
+      group.position.set(person.x, baseY, person.z);
+      group.scale.setScalar(scale);
       group.rotation.y = person.look === "left" ? -Math.PI / 2 : Math.PI / 2;
       const parts = addLegoStandingBody(group, person);
 
@@ -2151,11 +2187,11 @@
         { x: .75, y: 1.9, z: .75 },
         { x: 0, y: .95, z: 0 },
         {
-          title: "관람객",
-          artist: "작품을 바라보는 인물 옆에 섰습니다.",
+          title: person.child ? "어린이 관람객" : "관람객",
+          artist: person.child ? "작은 관람객 옆에서 함께 작품을 바라봅니다." : "작품을 바라보는 인물 옆에 섰습니다.",
           view: {
             x: person.x - side * .85,
-            y: 1.72,
+            y: baseY + (person.child ? 1.25 : 1.72),
             z: person.z + .55,
             yaw: side * .62,
             pitch: 0
@@ -2173,7 +2209,9 @@
         baseRotY: group.rotation.y,
         phase: Math.abs(person.x * 1.7 + person.z * .31),
         mode: person.walker ? "walking" : "standing",
-        walkPhase: person.walkPhase || 0
+        walkPhase: person.walkPhase || 0,
+        floor: person.floor || 1,
+        walkSpeed: person.walkSpeed || .12
       });
     }
 
@@ -2183,6 +2221,13 @@
       { x: 2.18, z: -20.7, look: "right", coat: "#1f211e", hair: "#e5dcc8", accent: "#c8c2ad", wig: "baroque", trim: true, metalness: .18 },
       { x: -2.35, z: -25.2, look: "left", coat: "#23516a", hair: "#eee7dc", accent: "#c59b41", wig: "baroque", trim: true, metalness: .25 },
       { x: 1.92, z: -38.4, look: "right", coat: "#181818", hair: "#d6d1c7", accent: "#0f0f0f", wig: "liszt", bowTie: true }
+    ].forEach(addNpc);
+
+    [
+      { x: 1.55, y: 8.72, z: -6.4, look: "right", coat: "#6b7560", hair: "#3d3329", accent: "#efe3c5", legs: "#303436", wig: "short", walker: true, floor: 2, walkSpeed: .045, walkPhase: .4 },
+      { x: -1.85, y: 8.72, z: -17.6, look: "left", coat: "#8a4f5c", hair: "#2f2720", accent: "#e3c274", legs: "#3b3240", wig: "short", scarf: true },
+      { x: 1.05, y: 8.72, z: -12.2, look: "right", coat: "#4f86b8", hair: "#5a3823", accent: "#f0d35f", legs: "#31506f", wig: "short", child: true, scale: .68, walker: true, floor: 2, walkSpeed: .052, walkPhase: Math.PI },
+      { x: -1.15, y: 8.72, z: -24.5, look: "left", coat: "#d9833f", hair: "#241d18", accent: "#7bb56d", legs: "#5f4a37", wig: "short", child: true, scale: .66 }
     ].forEach(addNpc);
 
     function updateCaption(art) {
@@ -2226,6 +2271,12 @@
     function setPointerCoordinates(event) {
       pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    function getInteractiveHit(event) {
+      setPointerCoordinates(event);
+      raycaster.setFromCamera(pointer, camera);
+      return raycaster.intersectObjects(interactive, false)[0] || null;
     }
 
     function shortestAngleDelta(from, to) {
@@ -2324,9 +2375,7 @@
       if (isUiEvent(event)) return;
       updateLookDrag(event);
       if (event.pointerType === "touch" || viewingArt || lookDrag.active) return;
-      setPointerCoordinates(event);
-      raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(interactive, false)[0]?.object;
+      const hit = getInteractiveHit(event)?.object;
       mount.style.cursor = hit ? "zoom-in" : "default";
       characterCursor?.classList.toggle("is-hovering", !!hit);
       if (isStairPortal(hit)) openStairPrompt();
@@ -2363,7 +2412,6 @@
         lookDrag.moved = false;
         return;
       }
-      setPointerCoordinates(event);
       const wasDragging = lookDrag.active && lookDrag.moved;
       lookDrag.active = false;
       lookDrag.moved = false;
@@ -2372,8 +2420,7 @@
         viewingArt = null;
         return;
       }
-      raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(interactive, false)[0];
+      const hit = getInteractiveHit(event);
       const mesh = hit?.object;
       if (mesh?.userData.kind === "person") inspectPerson(mesh);
       else if (mesh?.userData.kind === "art") inspectArtwork(mesh);
@@ -2389,6 +2436,15 @@
       if (!event.target.closest?.(".home-control")) closeHomeMenu();
       if (!isUiEvent(event)) {
         moveCharacterCursor(event);
+        if (event.pointerType === "touch") {
+          const hit = getInteractiveHit(event);
+          if (isStairPortal(hit?.object)) {
+            lookDrag.active = false;
+            lookDrag.moved = false;
+            openStairPrompt();
+            return;
+          }
+        }
         characterCursor?.classList.add("is-active");
         lookDrag.active = true;
         lookDrag.moved = false;
@@ -2513,16 +2569,18 @@
       const seconds = time * .001;
       animatedNpcs.forEach(npc => {
         if (npc.mode === "walking") {
-          const loop = seconds * .12 + npc.walkPhase;
-          const radiusX = 1.55;
-          const radiusZ = 13.2;
-          const centerZ = -24.6;
+          const loop = seconds * npc.walkSpeed + npc.walkPhase;
+          const radiusX = npc.floor === 2 ? 1.15 : 1.55;
+          const radiusZ = npc.floor === 2 ? 9.8 : 13.2;
+          const centerZ = npc.floor === 2 ? -16.7 : -24.6;
           const nextX = Math.sin(loop) * radiusX;
           const nextZ = centerZ + Math.cos(loop) * radiusZ;
           const tangentX = Math.cos(loop) * radiusX;
           const tangentZ = -Math.sin(loop) * radiusZ;
           npc.group.position.x = nextX;
-          npc.group.position.z = THREE.MathUtils.clamp(nextZ, -39.4, -10.2);
+          npc.group.position.z = npc.floor === 2
+            ? THREE.MathUtils.clamp(nextZ, -27.6, -5.5)
+            : THREE.MathUtils.clamp(nextZ, -39.4, -10.2);
           npc.baseRotY = Math.atan2(tangentX, tangentZ);
         }
 
