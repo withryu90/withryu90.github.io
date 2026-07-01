@@ -518,8 +518,21 @@
       }
 
       .caption {
-        min-height: 86px;
+        width: min(300px, calc(100vw - 96px));
+        min-height: 64px;
+        padding: 11px 12px;
         bottom: 16px;
+      }
+
+      .caption b {
+        font-size: clamp(.92rem, 4.2vw, 1.08rem);
+        line-height: 1.08;
+      }
+
+      .caption span {
+        margin-top: 5px;
+        font-size: .76rem;
+        line-height: 1.32;
       }
 
       .progress {
