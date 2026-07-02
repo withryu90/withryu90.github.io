@@ -98,8 +98,8 @@
       white-space: nowrap;
     }
 
-    .brand-title h2 span + span::before {
-      content: " ";
+    .brand-title h2 .title-gap {
+      display: inline;
     }
 
     .toolbar {
@@ -686,15 +686,62 @@
           display: block;
         }
 
-        .brand-title h2 span + span::before {
-          content: "";
+        .brand-title h2 .title-gap {
+          display: none;
         }
       }
 
       .toolbar {
-        max-width: 192px;
+        max-width: 150px;
+        gap: 6px;
         flex-wrap: wrap;
         justify-content: flex-end;
+      }
+
+      .toolbar button {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+      }
+
+      .toolbar .music-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .toolbar .music-icon.play {
+        border-top-width: 10px;
+        border-bottom-width: 10px;
+        border-left-width: 18px;
+        transform: translateX(1px);
+      }
+
+      .toolbar .music-icon.pause {
+        width: 18px;
+        height: 20px;
+      }
+
+      .toolbar .music-icon.pause::before,
+      .toolbar .music-icon.pause::after {
+        width: 6px;
+      }
+
+      .toolbar .music-icon.pause::before {
+        left: 1px;
+      }
+
+      .toolbar .music-icon.pause::after {
+        right: 1px;
+      }
+
+      .toolbar .music-icon.stop {
+        width: 18px;
+        height: 18px;
+      }
+
+      .toolbar .music-icon.shuffle {
+        width: 20px;
+        height: 20px;
       }
 
       .caption {
@@ -823,7 +870,7 @@
   <div class="topbar">
     <div class="brand-title">
       <img src="assets/brand/grhs-emblem.png" alt="" />
-      <h2><span>GRHS</span><span>ART SPACE</span></h2>
+      <h2><span>GRHS</span><span class="title-gap"> </span><span>ART SPACE</span></h2>
     </div>
     <div class="toolbar">
       <button type="button" data-music="play" aria-label="배경음악 재생" title="배경음악 재생"><span class="music-icon play" aria-hidden="true"></span></button>
