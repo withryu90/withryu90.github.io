@@ -1376,7 +1376,7 @@
       {
         title: "The Starry Night",
         artist: "Vincent van Gogh, 1889",
-        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1200px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
+        url: "assets/art/starry-night.jpg",
         side: "right",
         z: -12,
         width: 3.3,
@@ -2160,7 +2160,6 @@
       world.add(group);
 
       const loader = new THREE.TextureLoader();
-      loader.setCrossOrigin("anonymous");
       loader.load(
         art.url,
         texture => {
@@ -2619,19 +2618,21 @@
     function inspectArtwork(mesh) {
       const art = mesh.userData.art;
       const floorY = art.floorY || 0;
+      const viewY = floorY + 2.18;
       viewingArt = mesh;
       updateCaption(art);
       if (art.side === "end") {
         target.x = 0;
-        target.z = art.z + 4.7;
+        target.z = art.z + 5.05;
         target.yaw = 0;
       } else {
-        target.x = art.side === "left" ? -2.75 : 2.75;
-        target.z = art.z + .2;
-        target.yaw = art.side === "left" ? 1.18 : -1.18;
+        target.x = art.side === "left" ? -2.35 : 2.35;
+        target.z = art.z;
+        target.yaw = art.side === "left" ? Math.PI / 2 : -Math.PI / 2;
       }
       target.pitch = 0;
-      target.y = floorY + 1.85;
+      target.y = viewY;
+      target.fov = 56;
       mount.style.cursor = "default";
     }
 
