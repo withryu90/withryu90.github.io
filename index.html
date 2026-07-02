@@ -98,6 +98,10 @@
       white-space: nowrap;
     }
 
+    .brand-title h2 span + span::before {
+      content: " ";
+    }
+
     .toolbar {
       display: flex;
       gap: 8px;
@@ -528,12 +532,19 @@
 
     .welcome-panel {
       width: min(560px, 100%);
+      max-height: calc(100vh - 48px);
       padding: clamp(24px, 5vw, 42px);
       border: 1px solid rgba(41, 36, 31, .16);
       border-radius: 8px;
       background: rgba(255, 255, 252, .94);
       box-shadow: 0 26px 80px rgba(40, 35, 28, .18);
       text-align: center;
+    }
+
+    #guestbookModal .welcome-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .welcome-panel p {
@@ -601,10 +612,16 @@
     .guestbook-list {
       display: grid;
       gap: 8px;
-      max-height: min(210px, 28vh);
+      height: min(320px, 38vh);
+      max-height: min(320px, 38vh);
       margin-top: 18px;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       text-align: left;
+      padding-right: 4px;
     }
 
     .guestbook-entry {
@@ -667,6 +684,10 @@
 
         .brand-title h2 span {
           display: block;
+        }
+
+        .brand-title h2 span + span::before {
+          content: "";
         }
       }
 
@@ -2449,6 +2470,10 @@
       return !!event.target.closest?.(".toolbar, .welcome-modal, .stair-prompt, .npc-bubble, .caption, .home-control");
     }
 
+    function isScrollableGuestbookEvent(event) {
+      return !!event.target.closest?.(".guestbook-list");
+    }
+
     function isStairPortal(mesh) {
       return mesh?.userData?.subject?.portal === "secondFloor";
     }
@@ -2753,6 +2778,7 @@
     });
 
     window.addEventListener("gesturestart", event => {
+      if (isScrollableGuestbookEvent(event)) return;
       event.preventDefault();
       safariGesture.active = true;
       safariGesture.fov = target.fov;
@@ -2760,6 +2786,7 @@
     }, { passive: false });
 
     window.addEventListener("gesturechange", event => {
+      if (isScrollableGuestbookEvent(event)) return;
       if (!safariGesture.active) return;
       event.preventDefault();
       const scale = Math.max(event.scale, .1);
@@ -2772,6 +2799,7 @@
     });
 
     window.addEventListener("wheel", event => {
+      if (isScrollableGuestbookEvent(event)) return;
       event.preventDefault();
       if (isWorldInputSuppressed()) return;
       viewingArt = null;
@@ -2784,6 +2812,12 @@
 
     toolbar.addEventListener("click", event => {
       event.stopPropagation();
+    });
+
+    ["wheel", "touchmove"].forEach(eventName => {
+      guestbookList.addEventListener(eventName, event => {
+        event.stopPropagation();
+      }, { passive: true });
     });
 
     function startBackgroundMusic() {
