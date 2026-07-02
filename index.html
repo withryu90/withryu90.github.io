@@ -430,6 +430,7 @@
       backdrop-filter: blur(16px);
       pointer-events: auto;
       user-select: none;
+      isolation: isolate;
     }
 
     .stair-prompt * {
@@ -473,12 +474,13 @@
       padding: 18px 28px 16px;
       border: 1px solid rgba(41, 36, 31, .16);
       border-radius: 999px;
-      background: rgba(255, 255, 252, .96);
+      background: #fffffc;
       box-shadow: 0 16px 44px rgba(40, 35, 28, .18);
       text-align: center;
       backdrop-filter: blur(16px);
       pointer-events: auto;
       user-select: none;
+      isolation: isolate;
     }
 
     .npc-bubble.is-hidden {
@@ -493,13 +495,14 @@
       content: "";
       position: absolute;
       left: 50%;
-      bottom: -11px;
+      bottom: -9px;
       width: 20px;
       height: 20px;
       border-right: 1px solid rgba(41, 36, 31, .16);
       border-bottom: 1px solid rgba(41, 36, 31, .16);
-      background: rgba(255, 255, 252, .96);
+      background: #fffffc;
       transform: translateX(-50%) rotate(45deg);
+      z-index: -1;
     }
 
     .npc-bubble p {
