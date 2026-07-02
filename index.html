@@ -668,8 +668,8 @@
       }
 
       .brand-title img {
-        width: clamp(1.05rem, 5.25vw, 1.5rem);
-        height: clamp(1.05rem, 5.25vw, 1.5rem);
+        width: clamp(1.18rem, 6vw, 1.7rem);
+        height: clamp(1.18rem, 6vw, 1.7rem);
       }
 
       .brand-title h2 {
@@ -820,7 +820,7 @@
       .caption {
         left: 10px;
         bottom: 10px;
-        width: min(180px, 43vw);
+        width: min(225px, 54vw);
         min-height: 48px;
         padding: 8px 9px;
       }
@@ -848,6 +848,10 @@
         height: 34px;
         padding: 0 8px;
         font-size: .7rem;
+      }
+
+      #homeView {
+        font-size: .62rem;
       }
 
       .home-menu-items {
@@ -1465,7 +1469,7 @@
 
     const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 760;
     const maxPixelRatio = isTouchDevice ? 1 : 1.35;
-    const targetFrameMs = 1000 / (isTouchDevice ? 30 : 45);
+    const targetFrameMs = 0;
 
     const renderer = new THREE.WebGLRenderer({ antialias: !isTouchDevice, alpha: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio));
