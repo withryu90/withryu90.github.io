@@ -482,14 +482,14 @@
     .npc-bubble::after {
       content: "";
       position: absolute;
-      right: 64px;
+      left: 50%;
       bottom: -11px;
       width: 20px;
       height: 20px;
       border-right: 1px solid rgba(41, 36, 31, .16);
       border-bottom: 1px solid rgba(41, 36, 31, .16);
       background: rgba(255, 255, 252, .96);
-      transform: rotate(45deg);
+      transform: translateX(-50%) rotate(45deg);
     }
 
     .npc-bubble p {
@@ -996,6 +996,7 @@
       npcBubbleChoices.classList.remove("is-hidden");
       npcBubbleCloseWrap.classList.add("is-hidden");
       npcBubble.classList.remove("is-hidden");
+      scheduleNpcBubblePositionUpdate();
     }
 
     function insistNpcConversation(event) {
@@ -1005,6 +1006,7 @@
       npcTalkSkip.classList.add("is-hidden");
       npcBubbleChoices.classList.remove("is-hidden");
       npcBubbleCloseWrap.classList.add("is-hidden");
+      scheduleNpcBubblePositionUpdate();
     }
 
     function showNpcConversation(event) {
@@ -1012,6 +1014,7 @@
       npcBubbleText.textContent = "1층 전시는 인상주의와 관련된 전시에요! 1층 전시를 다 보고 2층 표현주의 전시를 보는 걸 추천합니다.";
       npcBubbleChoices.classList.add("is-hidden");
       npcBubbleCloseWrap.classList.remove("is-hidden");
+      scheduleNpcBubblePositionUpdate();
     }
 
     function closeNpcBubble(event) {
@@ -2479,6 +2482,32 @@
       openNpcBubble();
     }
 
+    function updateNpcBubblePosition() {
+      if (npcBubble.classList.contains("is-hidden")) return;
+      const rect = npcBubble.getBoundingClientRect();
+      const topbarRect = document.querySelector(".topbar")?.getBoundingClientRect();
+      const margin = 14;
+      const headX = window.innerWidth * .5;
+      const headY = window.innerHeight * (window.innerWidth > 760 ? .54 : .5);
+      const preferredLeft = headX - rect.width * .5;
+      const preferredTop = headY - rect.height - 22;
+      const maxLeft = window.innerWidth - rect.width - margin;
+      const maxTop = window.innerHeight - rect.height - margin;
+      const minTop = Math.max(margin, (topbarRect?.bottom || 0) + 22);
+      const left = THREE.MathUtils.clamp(preferredLeft, margin, Math.max(margin, maxLeft));
+      const top = THREE.MathUtils.clamp(preferredTop, minTop, Math.max(minTop, maxTop));
+      npcBubble.style.left = `${left}px`;
+      npcBubble.style.top = `${top}px`;
+    }
+
+    function scheduleNpcBubblePositionUpdate() {
+      updateNpcBubblePosition();
+      requestAnimationFrame(() => {
+        updateNpcBubblePosition();
+        requestAnimationFrame(updateNpcBubblePosition);
+      });
+    }
+
     function updateLookDrag(event) {
       if (!lookDrag.active || isUiEvent(event)) return;
       const dx = event.clientX - lookDrag.startX;
@@ -2754,6 +2783,7 @@
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio));
       renderer.setSize(window.innerWidth, window.innerHeight);
+      updateNpcBubblePosition();
     });
 
     function animateNpcs(time) {
@@ -2819,8 +2849,8 @@
         camera.fov = current.fov;
         camera.updateProjectionMatrix();
       }
-
       revealNpcBubbleAfterZoom();
+      updateNpcBubblePosition();
       renderer.render(scene, camera);
     }
 
