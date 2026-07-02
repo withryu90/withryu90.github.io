@@ -1418,6 +1418,9 @@
     };
     const target = { ...homePosition };
     const current = { ...target };
+    const npcBubbleAnchorWorld = new THREE.Vector3();
+    const npcBubbleAnchorScreen = new THREE.Vector3();
+    let seatedVisitorHairAnchor = null;
     const lookDrag = {
       active: false,
       moved: false,
@@ -2300,6 +2303,10 @@
       hair.position.set(0, 1.34, .04);
       group.add(hair);
 
+      seatedVisitorHairAnchor = new THREE.Object3D();
+      seatedVisitorHairAnchor.position.set(0, 1.5, .04);
+      group.add(seatedVisitorHairAnchor);
+
       [-.4, .4].forEach(x => {
         const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07, .075, .46, 12), shirtMaterial);
         arm.position.set(x, .56, .04);
@@ -2483,19 +2490,21 @@
     }
 
     function updateNpcBubblePosition() {
-      if (npcBubble.classList.contains("is-hidden")) return;
+      if (!seatedVisitorHairAnchor || npcBubble.classList.contains("is-hidden")) return;
+      world.updateMatrixWorld(true);
+      camera.updateMatrixWorld(true);
+      seatedVisitorHairAnchor.getWorldPosition(npcBubbleAnchorWorld);
+      npcBubbleAnchorScreen.copy(npcBubbleAnchorWorld).project(camera);
+      const anchorX = (npcBubbleAnchorScreen.x * .5 + .5) * window.innerWidth;
+      const anchorY = (-npcBubbleAnchorScreen.y * .5 + .5) * window.innerHeight;
       const rect = npcBubble.getBoundingClientRect();
-      const topbarRect = document.querySelector(".topbar")?.getBoundingClientRect();
       const margin = 14;
-      const headX = window.innerWidth * .5;
-      const headY = window.innerHeight * (window.innerWidth > 760 ? .54 : .5);
-      const preferredLeft = headX - rect.width * .5;
-      const preferredTop = headY - rect.height - 22;
+      const preferredLeft = anchorX - rect.width * .5;
+      const preferredTop = anchorY - rect.height - 18;
       const maxLeft = window.innerWidth - rect.width - margin;
       const maxTop = window.innerHeight - rect.height - margin;
-      const minTop = Math.max(margin, (topbarRect?.bottom || 0) + 22);
       const left = THREE.MathUtils.clamp(preferredLeft, margin, Math.max(margin, maxLeft));
-      const top = THREE.MathUtils.clamp(preferredTop, minTop, Math.max(minTop, maxTop));
+      const top = THREE.MathUtils.clamp(preferredTop, margin, Math.max(margin, maxTop));
       npcBubble.style.left = `${left}px`;
       npcBubble.style.top = `${top}px`;
     }
@@ -2849,6 +2858,7 @@
         camera.fov = current.fov;
         camera.updateProjectionMatrix();
       }
+
       revealNpcBubbleAfterZoom();
       updateNpcBubblePosition();
       renderer.render(scene, camera);
