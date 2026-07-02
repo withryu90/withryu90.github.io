@@ -90,6 +90,12 @@
     .brand-title h2 {
       max-width: none;
       font-size: clamp(1.5rem, 3.9vw, 4.05rem);
+      white-space: nowrap;
+    }
+
+    .brand-title h2 span {
+      display: inline;
+      white-space: nowrap;
     }
 
     .toolbar {
@@ -653,6 +659,17 @@
         font-size: clamp(1.05rem, 5.25vw, 1.5rem);
       }
 
+      @media (orientation: portrait) {
+        .brand-title h2 {
+          line-height: .92;
+          white-space: normal;
+        }
+
+        .brand-title h2 span {
+          display: block;
+        }
+      }
+
       .toolbar {
         max-width: 192px;
         flex-wrap: wrap;
@@ -785,7 +802,7 @@
   <div class="topbar">
     <div class="brand-title">
       <img src="assets/brand/grhs-emblem.png" alt="" />
-      <h2>GRHS ART SPACE</h2>
+      <h2><span>GRHS</span><span>ART SPACE</span></h2>
     </div>
     <div class="toolbar">
       <button type="button" data-music="play" aria-label="배경음악 재생" title="배경음악 재생"><span class="music-icon play" aria-hidden="true"></span></button>
