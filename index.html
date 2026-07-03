@@ -511,6 +511,7 @@
       font-size: .95rem;
       line-height: 1.48;
       word-break: keep-all;
+      white-space: pre-line;
     }
 
     .npc-bubble-actions {
@@ -902,7 +903,7 @@
   <div class="loading" id="loading">갤러리 조명 조정 중</div>
   <div class="welcome-modal" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeText">
     <div class="welcome-panel">
-      <p id="welcomeText">계룡고등학교 음악X미술 프로젝트<br>'인상, 표현, 미니멀리즘의 점·선·색 변주곡'을 위한<br>갤러리에 오신 것을 환영합니다.</p>
+      <p id="welcomeText">계룡고등학교 음악X미술 프로젝트<br>갤러리에 오신 것을 환영합니다.</p>
       <button id="welcomeClose" type="button">입장</button>
     </div>
   </div>
@@ -1103,7 +1104,7 @@
 
     function showNpcConversation(event) {
       consumeModalEvent(event);
-      npcBubbleText.textContent = "1층 전시는 인상주의와 관련된 전시에요! 1층 전시를 다 보고 2층 표현주의 전시를 보는 걸 추천합니다.";
+      npcBubbleText.textContent = "1층 전시는 인상주의 전시입니다!\n1층 전시를 다 보면 계단을 통해 올라간 후\n2층 표현주의 전시를 관람하세요 :)";
       npcBubbleChoices.classList.add("is-hidden");
       npcBubbleCloseWrap.classList.remove("is-hidden");
       scheduleNpcBubblePositionUpdate();
