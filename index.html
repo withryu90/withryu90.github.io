@@ -6,6 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <meta name="gallery-version" content="welcome-copy-20260706" />
   <title>GRHS ART SPACE</title>
   <style>
     :root {
@@ -967,6 +968,7 @@
     const toolbar = document.querySelector(".toolbar");
     const musicPlayer = document.querySelector("#musicPlayer");
     const welcomeModal = document.querySelector("#welcomeModal");
+    const welcomeText = document.querySelector("#welcomeText");
     const welcomeClose = document.querySelector("#welcomeClose");
     const guideModal = document.querySelector("#guideModal");
     const guideClose = document.querySelector("#guideClose");
@@ -1007,6 +1009,11 @@
     let secondFloorStairPromptReadyAt = 0;
     let worldInputSuppressedUntil = 0;
     let npcBubblePending = false;
+    const welcomeCopyHtml = "계룡고등학교 음악X미술 프로젝트<br>갤러리에 오신 것을 환영합니다.";
+
+    if (welcomeText) {
+      welcomeText.innerHTML = welcomeCopyHtml;
+    }
 
     function loadTrack(index) {
       const nextTrack = playlist[index];
