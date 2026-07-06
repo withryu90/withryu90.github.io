@@ -2261,6 +2261,106 @@
       }
     }
 
+    function addSeatedVisitorDetails(group, materials) {
+      const { hairMaterial, grayHairMaterial, glassesMaterial, lensMaterial, shirtMaterial, stripeMaterial, skinMaterial, buttonMaterial } = materials;
+
+      const hairCap = new THREE.Mesh(new THREE.CylinderGeometry(.255, .245, .1, 24), hairMaterial);
+      hairCap.position.set(0, 1.335, .04);
+      hairCap.scale.set(1.06, .82, .98);
+      hairCap.castShadow = true;
+      group.add(hairCap);
+
+      const frontHairBand = new THREE.Mesh(new THREE.BoxGeometry(.42, .07, .075), hairMaterial);
+      frontHairBand.position.set(0, 1.32, .14);
+      frontHairBand.rotation.x = -.08;
+      frontHairBand.castShadow = true;
+      group.add(frontHairBand);
+
+      [-.23, .23].forEach(x => {
+        const sideHair = new THREE.Mesh(new THREE.BoxGeometry(.07, .19, .08), grayHairMaterial);
+        sideHair.position.set(x, 1.25, .055);
+        sideHair.rotation.z = x < 0 ? -.1 : .1;
+        sideHair.castShadow = true;
+        group.add(sideHair);
+
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(.042, 12, 8), skinMaterial);
+        ear.position.set(x * 1.03, 1.12, .055);
+        ear.scale.set(.7, 1.05, .45);
+        group.add(ear);
+      });
+
+      [-.22, .22].forEach(x => {
+        const sleeve = new THREE.Mesh(new THREE.BoxGeometry(.15, .2, .26), shirtMaterial);
+        sleeve.position.set(x, .76, .06);
+        sleeve.rotation.z = x < 0 ? .18 : -.18;
+        sleeve.castShadow = true;
+        group.add(sleeve);
+      });
+
+      const collarLeft = new THREE.Mesh(new THREE.BoxGeometry(.16, .06, .035), shirtMaterial);
+      collarLeft.position.set(-.08, .88, .184);
+      collarLeft.rotation.z = -.38;
+      group.add(collarLeft);
+      const collarRight = collarLeft.clone();
+      collarRight.position.x = .08;
+      collarRight.rotation.z = .38;
+      group.add(collarRight);
+
+      const placket = new THREE.Mesh(new THREE.BoxGeometry(.035, .5, .02), stripeMaterial);
+      placket.position.set(0, .58, .188);
+      placket.rotation.x = -.08;
+      group.add(placket);
+
+      [.39, .5, .61, .72].forEach(y => {
+        const button = new THREE.Mesh(new THREE.SphereGeometry(.012, 8, 6), buttonMaterial);
+        button.position.set(.005, y, .203);
+        group.add(button);
+      });
+
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(.022, .042, .018), buttonMaterial);
+      nose.position.set(0, 1.1, .231);
+      group.add(nose);
+
+      const frameY = 1.155;
+      [-.078, .078].forEach(x => {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(.078, .009, .012), hairMaterial);
+        brow.position.set(x, frameY + .06, .239);
+        brow.rotation.z = x < 0 ? -.08 : .08;
+        group.add(brow);
+      });
+
+      [-.078, .078].forEach(x => {
+        const topBar = new THREE.Mesh(new THREE.BoxGeometry(.112, .011, .014), glassesMaterial);
+        topBar.position.set(x, frameY + .041, .25);
+        group.add(topBar);
+
+        const bottomBar = new THREE.Mesh(new THREE.BoxGeometry(.104, .011, .014), glassesMaterial);
+        bottomBar.position.set(x, frameY - .041, .25);
+        group.add(bottomBar);
+
+        [-.052, .052].forEach(offset => {
+          const sideBar = new THREE.Mesh(new THREE.BoxGeometry(.011, .086, .014), glassesMaterial);
+          sideBar.position.set(x + offset, frameY, .25);
+          group.add(sideBar);
+        });
+
+        const lens = new THREE.Mesh(new THREE.PlaneGeometry(.092, .07), lensMaterial);
+        lens.position.set(x, frameY, .244);
+        group.add(lens);
+      });
+
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(.052, .012, .015), glassesMaterial);
+      bridge.position.set(0, frameY + .002, .252);
+      group.add(bridge);
+
+      [-.145, .145].forEach(x => {
+        const temple = new THREE.Mesh(new THREE.BoxGeometry(.112, .01, .012), glassesMaterial);
+        temple.position.set(x, frameY + .002, .21);
+        temple.rotation.y = x < 0 ? -.62 : .62;
+        group.add(temple);
+      });
+    }
+
     function addLegoStandingBody(group, person) {
       const bodyMaterial = new THREE.MeshStandardMaterial({ color: person.coat, roughness: .68 });
       const hairMaterial = new THREE.MeshStandardMaterial({ color: person.hair, roughness: .78 });
@@ -2355,12 +2455,17 @@
       group.position.set(0, .64, -14.88);
       group.rotation.y = 0;
 
-      const shirtMaterial = new THREE.MeshStandardMaterial({ color: "#6e83b8", roughness: .78 });
-      const stripeMaterial = new THREE.MeshStandardMaterial({ color: "#d8e0f3", roughness: .72 });
+      const shirtMaterial = new THREE.MeshStandardMaterial({ color: "#6f83ad", roughness: .78 });
+      const stripeMaterial = new THREE.MeshStandardMaterial({ color: "#d7e0f4", roughness: .72 });
+      const darkStripeMaterial = new THREE.MeshStandardMaterial({ color: "#4d638b", roughness: .76 });
       const pantsMaterial = new THREE.MeshStandardMaterial({ color: "#17191d", roughness: .82 });
-      const hairMaterial = new THREE.MeshStandardMaterial({ color: "#2e3337", roughness: .84 });
-      const legoSkinMaterial = new THREE.MeshStandardMaterial({ color: "#f0c646", roughness: .58 });
+      const hairMaterial = new THREE.MeshStandardMaterial({ color: "#252b30", roughness: .84 });
+      const grayHairMaterial = new THREE.MeshStandardMaterial({ color: "#71777a", roughness: .86 });
+      const legoSkinMaterial = new THREE.MeshStandardMaterial({ color: "#e0b27c", roughness: .58 });
       const shoeMaterial = new THREE.MeshStandardMaterial({ color: "#101010", roughness: .68 });
+      const glassesMaterial = new THREE.MeshStandardMaterial({ color: "#43342b", roughness: .48, metalness: .15 });
+      const lensMaterial = new THREE.MeshStandardMaterial({ color: "#e9f3ff", transparent: true, opacity: .28, roughness: .08, metalness: .02 });
+      const buttonMaterial = new THREE.MeshStandardMaterial({ color: "#253047", roughness: .62 });
       const seatedParts = { arms: [], legs: [] };
 
       const hip = new THREE.Mesh(new THREE.BoxGeometry(.54, .18, .32), pantsMaterial);
@@ -2381,6 +2486,12 @@
         stripe.rotation.x = -.08;
         group.add(stripe);
       });
+      [-.185, -.095, -.005, .085, .175].forEach(x => {
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(.008, .54, .016), darkStripeMaterial);
+        stripe.position.set(x, .58, .181);
+        stripe.rotation.x = -.08;
+        group.add(stripe);
+      });
 
       const neck = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .08, 18), legoSkinMaterial);
       neck.position.set(0, .92, .02);
@@ -2398,24 +2509,38 @@
 
       addLegoFace(group, 1.12);
 
-      const hair = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .12, 18), hairMaterial);
-      hair.position.set(0, 1.34, .04);
-      group.add(hair);
+      addSeatedVisitorDetails(group, {
+        hairMaterial,
+        grayHairMaterial,
+        glassesMaterial,
+        lensMaterial,
+        shirtMaterial,
+        stripeMaterial,
+        skinMaterial: legoSkinMaterial,
+        buttonMaterial
+      });
 
       seatedVisitorHairAnchor = new THREE.Object3D();
       seatedVisitorHairAnchor.position.set(0, 1.5, .04);
       group.add(seatedVisitorHairAnchor);
 
       [-.4, .4].forEach(x => {
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07, .075, .46, 12), shirtMaterial);
-        arm.position.set(x, .56, .04);
-        arm.rotation.z = x < 0 ? -.2 : .2;
-        arm.castShadow = true;
-        group.add(arm);
-        seatedParts.arms.push({ mesh: arm, side: x < 0 ? -1 : 1, baseZ: arm.rotation.z });
+        const armTilt = x < 0 ? -.16 : .16;
+        const sleeve = new THREE.Mesh(new THREE.BoxGeometry(.16, .24, .18), shirtMaterial);
+        sleeve.position.set(x, .66, .045);
+        sleeve.rotation.z = armTilt;
+        sleeve.castShadow = true;
+        group.add(sleeve);
+        seatedParts.arms.push({ mesh: sleeve, side: x < 0 ? -1 : 1, baseZ: sleeve.rotation.z });
+
+        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(.056, .06, .27, 12), legoSkinMaterial);
+        forearm.position.set(x, .49, .058);
+        forearm.rotation.z = armTilt;
+        forearm.castShadow = true;
+        group.add(forearm);
 
         const hand = new THREE.Mesh(new THREE.TorusGeometry(.055, .018, 8, 14, Math.PI * 1.35), legoSkinMaterial);
-        hand.position.set(x, .3, .07);
+        hand.position.set(x, .34, .07);
         hand.rotation.set(Math.PI / 2, 0, x < 0 ? -.8 : .8);
         group.add(hand);
       });
