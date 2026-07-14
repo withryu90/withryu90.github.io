@@ -193,9 +193,9 @@
     .caption {
       left: clamp(16px, 4vw, 48px);
       bottom: clamp(18px, 4vw, 42px);
-      width: min(420px, calc(100vw - 32px));
-      min-height: 98px;
-      padding: 16px 18px;
+      width: min(560px, calc(100vw - 32px));
+      min-height: 126px;
+      padding: 18px 22px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
@@ -210,16 +210,17 @@
 
     .caption b {
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(1.15rem, 2.2vw, 1.7rem);
+      font-size: clamp(1.28rem, 2.35vw, 1.9rem);
       font-weight: 500;
       line-height: 1.06;
     }
 
     .caption span {
-      margin-top: 8px;
+      margin-top: 10px;
       color: var(--muted);
-      font-size: .92rem;
-      line-height: 1.45;
+      font-size: 1rem;
+      line-height: 1.5;
+      white-space: pre-line;
     }
 
     .home-control {
@@ -910,7 +911,7 @@
   </div>
   <div class="welcome-modal is-hidden" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideText">
     <div class="welcome-panel">
-      <p id="guideText" class="guide-copy">커서를 통해 상하좌우로 이동이 가능하며, 작품을 클릭하면 가까이에서 들여다 볼 수 있습니다. 또한 전시장은 2층까지 구성이 되어있어 계단을 통해 이동할 수 있습니다.</p>
+      <p id="guideText" class="guide-copy">웹 접속 시 마우스의 커서와 휠을, 모바일 접속 시 터치로 이동이 가능합니다. 또한 작품을 누르면 가까이에서 들여다 볼 수 있으며, 작품 아래 헤드폰 버튼을 누르면 작품에 영감을 준 음악이 재생됩니다.</p>
       <button id="guideClose" type="button">닫기</button>
     </div>
   </div>
@@ -1001,7 +1002,7 @@
       "assets/audio/les-collines-danacapri.mp3"
     ];
     let trackIndex = 0;
-    let shouldAutoPlay = true;
+    let shouldAutoPlay = false;
     let guestbookCache = [];
     let guestbookLoadedAt = 0;
     let guestbookLoadingPromise = null;
@@ -1385,17 +1386,19 @@
         url: "assets/art/mona-lisa.jpg",
         side: "left",
         z: -8,
-        width: 2.25,
-        height: 3.2
+        width: 1.72,
+        height: 2.45
       },
       {
-        title: "The Starry Night",
-        artist: "Vincent van Gogh, 1889",
-        url: "assets/art/starry-night.jpg",
+        title: "달 위에 서서",
+        artist: "김계룡",
+        description: "끝없는 수평선이 펼쳐진 푸른 호수와 그 호수 위로 떠오른 달빛을 형상화 한 작품으로 달과 현실세계의 경계를 통해 따뜻한 미래를 찾아 나아감을 표현",
+        url: "assets/art/starry-night-student.jpg",
         side: "right",
         z: -12,
         width: 3.3,
-        height: 2.55
+        height: 2.31,
+        hideLabel: true
       },
       {
         title: "Girl with a Pearl Earring",
@@ -1403,8 +1406,8 @@
         url: "assets/art/pearl-earring.jpg",
         side: "left",
         z: -16.2,
-        width: 2.45,
-        height: 3
+        width: 2,
+        height: 2.45
       },
       {
         title: "The Great Wave off Kanagawa",
@@ -1430,8 +1433,8 @@
         url: "assets/art/las-meninas.jpg",
         side: "right",
         z: -29.2,
-        width: 2.75,
-        height: 3.28
+        width: 2.05,
+        height: 2.45
       },
       {
         title: "The Creation of Adam",
@@ -1448,8 +1451,8 @@
         url: "assets/art/arnolfini.jpg",
         side: "right",
         z: -38,
-        width: 2.45,
-        height: 3.15
+        width: 1.91,
+        height: 2.45
       },
       {
         title: "A Sunday on La Grande Jatte",
@@ -1466,8 +1469,8 @@
         url: "assets/art/the-kiss.jpg",
         side: "end",
         z: -48.5,
-        width: 2.75,
-        height: 2.75
+        width: 2.45,
+        height: 2.45
       }
     ];
 
@@ -1930,7 +1933,7 @@
       const floorY = 8.72;
       const group = new THREE.Group();
       const wallX = frame.side === "left" ? -4.84 : 4.84;
-      group.position.set(wallX, floorY + 2.22, frame.z);
+      group.position.set(wallX, floorY + 2.48, frame.z);
       group.rotation.y = frame.side === "left" ? Math.PI / 2 : -Math.PI / 2;
 
       const art = {
@@ -1972,6 +1975,35 @@
       innerLine.rotation.z = Math.PI / 4;
       innerLine.position.z = .035;
       group.add(innerLine);
+
+      const audioButton = new THREE.Mesh(
+        new THREE.PlaneGeometry(.42, .42),
+        new THREE.MeshStandardMaterial({
+          map: makeHeadphoneButtonTexture(),
+          transparent: true,
+          roughness: .54,
+          metalness: .02
+        })
+      );
+      audioButton.position.set(0, -frame.height / 2 - .45, .06);
+      audioButton.userData = {
+        kind: "subject",
+        subject: {
+          title: "음악 해설",
+          artist: `${art.title}의 음악 해설을 들을 수 있는 버튼입니다.`,
+          surface: "object",
+          view: {
+            x: frame.side === "left" ? -2.35 : 2.35,
+            y: floorY + 2.18,
+            z: frame.z,
+            yaw: frame.side === "left" ? Math.PI / 2 : -Math.PI / 2,
+            pitch: 0,
+            fov: 56
+          }
+        }
+      };
+      group.add(audioButton);
+      interactive.push(audioButton);
 
       world.add(group);
     }
@@ -2129,6 +2161,48 @@
       });
     }
 
+    function makeHeadphoneButtonTexture() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "rgba(255, 250, 241, .92)";
+      ctx.strokeStyle = "rgba(71, 57, 43, .28)";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.roundRect(22, 22, 212, 212, 44);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = "#29241f";
+      ctx.lineWidth = 18;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.arc(128, 130, 58, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.stroke();
+
+      ctx.fillStyle = "#29241f";
+      ctx.beginPath();
+      ctx.roundRect(58, 126, 34, 64, 14);
+      ctx.roundRect(164, 126, 34, 64, 14);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(41, 36, 31, .52)";
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.moveTo(92, 184);
+      ctx.quadraticCurveTo(128, 208, 164, 184);
+      ctx.stroke();
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = isTouchDevice ? 2 : 8;
+      return texture;
+    }
+
     function addArtwork(art, index) {
       const group = new THREE.Group();
       const isEnd = art.side === "end";
@@ -2163,14 +2237,34 @@
       group.add(plane);
       interactive.push(plane);
 
-      const label = new THREE.Mesh(
-        new THREE.PlaneGeometry(Math.min(art.width, 2.65), .46),
-        new THREE.MeshStandardMaterial({ map: makeLabelTexture(art), roughness: .7 })
+      const audioButton = new THREE.Mesh(
+        new THREE.PlaneGeometry(.46, .46),
+        new THREE.MeshStandardMaterial({
+          map: makeHeadphoneButtonTexture(),
+          transparent: true,
+          roughness: .54,
+          metalness: .02
+        })
       );
-      label.position.set(0, -art.height / 2 - .54, .045);
-      label.userData = { kind: "art", art, index, group };
-      group.add(label);
-      interactive.push(label);
+      audioButton.position.set(0, -art.height / 2 - .42, .06);
+      audioButton.userData = {
+        kind: "subject",
+        subject: {
+          title: "음악 해설",
+          artist: `${art.title} 작품의 음악 해설을 들을 수 있는 버튼입니다.`,
+          surface: "object",
+          view: {
+            x: isEnd ? 0 : art.side === "left" ? -2.35 : 2.35,
+            y: artY,
+            z: art.z,
+            yaw: isEnd ? 0 : art.side === "left" ? Math.PI / 2 : -Math.PI / 2,
+            pitch: 0,
+            fov: 56
+          }
+        }
+      };
+      group.add(audioButton);
+      interactive.push(audioButton);
 
       world.add(group);
 
@@ -2214,13 +2308,26 @@
       interactive.push(hitbox);
     }
 
-    function addLegoFace(group, y = 1.56) {
+    function addLegoFace(group, y = 1.56, options = {}) {
       const faceMaterial = new THREE.MeshStandardMaterial({ color: "#151515", roughness: .52 });
-      [-.075, .075].forEach(x => {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(.026, 10, 8), faceMaterial);
-        eye.position.set(x, y + .045, .224);
-        group.add(eye);
-      });
+      if (options.lineEyes) {
+        [-.078, .078].forEach(x => {
+          const smileEyeCurve = new THREE.QuadraticBezierCurve3(
+            new THREE.Vector3(-.014, 0, 0),
+            new THREE.Vector3(0, .012, 0),
+            new THREE.Vector3(.014, 0, 0)
+          );
+          const eye = new THREE.Mesh(new THREE.TubeGeometry(smileEyeCurve, 12, .005, 6, false), faceMaterial);
+          eye.position.set(x, y + .037, .238);
+          group.add(eye);
+        });
+      } else {
+        [-.075, .075].forEach(x => {
+          const eye = new THREE.Mesh(new THREE.SphereGeometry(.026, 10, 8), faceMaterial);
+          eye.position.set(x, y + .045, .224);
+          group.add(eye);
+        });
+      }
       const smile = new THREE.Mesh(new THREE.TorusGeometry(.07, .007, 6, 18, Math.PI), faceMaterial);
       smile.position.set(0, y - .035, .226);
       smile.rotation.set(Math.PI / 2, 0, Math.PI);
@@ -2322,43 +2429,43 @@
       group.add(nose);
 
       const frameY = 1.155;
-      [-.078, .078].forEach(x => {
-        const brow = new THREE.Mesh(new THREE.BoxGeometry(.078, .009, .012), hairMaterial);
+      [-.052, .052].forEach(x => {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(.18, .011, .012), hairMaterial);
         brow.position.set(x, frameY + .06, .239);
         brow.rotation.z = x < 0 ? -.08 : .08;
         group.add(brow);
       });
 
       [-.078, .078].forEach(x => {
-        const topBar = new THREE.Mesh(new THREE.BoxGeometry(.112, .011, .014), glassesMaterial);
-        topBar.position.set(x, frameY + .041, .25);
+        const topBar = new THREE.Mesh(new THREE.BoxGeometry(.132, .011, .014), glassesMaterial);
+        topBar.position.set(x, frameY + .036, .25);
         group.add(topBar);
 
-        const bottomBar = new THREE.Mesh(new THREE.BoxGeometry(.104, .011, .014), glassesMaterial);
-        bottomBar.position.set(x, frameY - .041, .25);
+        const bottomBar = new THREE.Mesh(new THREE.BoxGeometry(.124, .011, .014), glassesMaterial);
+        bottomBar.position.set(x, frameY - .036, .25);
         group.add(bottomBar);
 
-        [-.052, .052].forEach(offset => {
-          const sideBar = new THREE.Mesh(new THREE.BoxGeometry(.011, .086, .014), glassesMaterial);
+        [-.062, .062].forEach(offset => {
+          const sideBar = new THREE.Mesh(new THREE.BoxGeometry(.011, .076, .014), glassesMaterial);
           sideBar.position.set(x + offset, frameY, .25);
           group.add(sideBar);
         });
 
-        const lens = new THREE.Mesh(new THREE.PlaneGeometry(.092, .07), lensMaterial);
+        const lens = new THREE.Mesh(new THREE.PlaneGeometry(.112, .058), lensMaterial);
         lens.position.set(x, frameY, .244);
         group.add(lens);
+      });
+
+      [-.016, .016].forEach(x => {
+        const innerBar = new THREE.Mesh(new THREE.BoxGeometry(.012, .078, .016), glassesMaterial);
+        innerBar.position.set(x, frameY, .258);
+        group.add(innerBar);
       });
 
       const bridge = new THREE.Mesh(new THREE.BoxGeometry(.052, .012, .015), glassesMaterial);
       bridge.position.set(0, frameY + .002, .252);
       group.add(bridge);
 
-      [-.145, .145].forEach(x => {
-        const temple = new THREE.Mesh(new THREE.BoxGeometry(.112, .01, .012), glassesMaterial);
-        temple.position.set(x, frameY + .002, .21);
-        temple.rotation.y = x < 0 ? -.62 : .62;
-        group.add(temple);
-      });
     }
 
     function addLegoStandingBody(group, person) {
@@ -2464,7 +2571,7 @@
       const legoSkinMaterial = new THREE.MeshStandardMaterial({ color: "#e0b27c", roughness: .58 });
       const shoeMaterial = new THREE.MeshStandardMaterial({ color: "#101010", roughness: .68 });
       const glassesMaterial = new THREE.MeshStandardMaterial({ color: "#43342b", roughness: .48, metalness: .15 });
-      const lensMaterial = new THREE.MeshStandardMaterial({ color: "#e9f3ff", transparent: true, opacity: .28, roughness: .08, metalness: .02 });
+      const lensMaterial = new THREE.MeshStandardMaterial({ color: "#e9f3ff", transparent: true, opacity: .22, roughness: .08, metalness: .02, depthWrite: false });
       const buttonMaterial = new THREE.MeshStandardMaterial({ color: "#253047", roughness: .62 });
       const seatedParts = { arms: [], legs: [] };
 
@@ -2648,8 +2755,10 @@
 
     function updateCaption(art) {
       if (!art) return;
-      titleEl.textContent = art.title;
-      metaEl.textContent = art.artist;
+      titleEl.textContent = art.description ? `작품명: ${art.title}` : art.title;
+      metaEl.textContent = art.description
+        ? `작가: ${art.artist}\n작품 해설: ${art.description}`
+        : art.artist;
     }
 
     function isUiEvent(event) {
@@ -3013,10 +3122,6 @@
       loadTrack(trackIndex);
       musicPlayer.play().catch(() => {});
     }
-
-    ["pointerdown", "wheel", "keydown", "touchstart"].forEach(eventName => {
-      window.addEventListener(eventName, startBackgroundMusic, { once: true, passive: true });
-    });
 
     musicPlayer.addEventListener("ended", () => {
       trackIndex = (trackIndex + 1) % playlist.length;
