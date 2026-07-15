@@ -81,6 +81,13 @@
       max-width: min(620px, 66vw);
     }
 
+    .brand-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
     .brand-title img {
       width: clamp(1.5rem, 3.9vw, 4.05rem);
       height: clamp(1.5rem, 3.9vw, 4.05rem);
@@ -101,6 +108,15 @@
 
     .brand-title h2 .title-gap {
       display: inline;
+    }
+
+    .brand-credit {
+      margin: 0;
+      color: rgba(36, 31, 27, .78);
+      font-size: clamp(.72rem, 1.15vw, 1rem);
+      font-weight: 600;
+      line-height: 1.25;
+      white-space: nowrap;
     }
 
     .toolbar {
@@ -682,6 +698,11 @@
         font-size: clamp(1.05rem, 5.25vw, 1.5rem);
       }
 
+      .brand-credit {
+        font-size: clamp(.52rem, 2.65vw, .72rem);
+        line-height: 1.2;
+      }
+
       @media (orientation: portrait) {
         .brand-title h2 {
           line-height: .92;
@@ -880,7 +901,10 @@
   <div class="topbar">
     <div class="brand-title">
       <img src="assets/brand/grhs-emblem.png" alt="" />
-      <h2><span>GRHS</span><span class="title-gap"> </span><span>ART SPACE</span></h2>
+      <div class="brand-copy">
+        <h2><span>GRHS</span><span class="title-gap"> </span><span>ART SPACE</span></h2>
+        <p class="brand-credit">큐레이터: 길다혜, 유지영 · 도슨트: 1학년 예술가들</p>
+      </div>
     </div>
     <div class="toolbar">
       <button type="button" data-music="play" aria-label="배경음악 재생" title="배경음악 재생"><span class="music-icon play" aria-hidden="true"></span></button>
