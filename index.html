@@ -572,6 +572,7 @@
     #artistsModal .welcome-panel {
       display: flex;
       flex-direction: column;
+      max-height: min(78vh, 620px);
       overflow: hidden;
     }
 
@@ -589,17 +590,27 @@
     }
 
     .artists-copy {
-      max-height: min(52vh, 440px);
       margin: 0;
-      padding: 12px 4px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
       color: var(--ink);
       font-size: clamp(.84rem, 1.8vw, 1.05rem);
       font-weight: 650;
       line-height: 1.58;
       text-align: center;
       white-space: pre-line;
+    }
+
+    .artists-list {
+      flex: 1 1 auto;
+      height: min(320px, 38vh);
+      max-height: min(320px, 38vh);
+      margin-top: 4px;
+      padding: 16px 6px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      pointer-events: auto;
     }
 
     #artistsClose {
@@ -974,7 +985,8 @@
   </div>
   <div class="welcome-modal is-hidden" id="artistsModal" role="dialog" aria-modal="true" aria-labelledby="artistsText">
     <div class="welcome-panel">
-      <p id="artistsText" class="artists-copy"> · 1학년 예술가들 · 
+      <div class="artists-list">
+        <p id="artistsText" class="artists-copy"> · 1학년 예술가들 · 
 1117 이승리
 1118 이윤서
 1206 김경하
@@ -991,6 +1003,7 @@
 1618 정소미
 1718 장아영
 1725 황태우</p>
+      </div>
       <button id="artistsClose" type="button">닫기</button>
     </div>
   </div>
@@ -1715,6 +1728,16 @@
       return texture;
     }
 
+    function prepareArtworkTexture(texture) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = isTouchDevice ? 1 : 4;
+      texture.generateMipmaps = false;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.needsUpdate = true;
+      return texture;
+    }
+
     function addNameTag(group, text, x, y, z) {
       const tagMaterial = new THREE.MeshBasicMaterial({
         map: makeNameTagTexture(text),
@@ -2143,7 +2166,7 @@
       interactive.push(blank);
 
       const artHitbox = new THREE.Mesh(
-        new THREE.PlaneGeometry(frame.width + .5, frame.height + .42),
+        new THREE.PlaneGeometry(frame.width + .95, frame.height + .78),
         hitboxMaterial
       );
       artHitbox.position.z = .12;
@@ -2195,7 +2218,7 @@
       interactive.push(audioButton);
       if (art.audioSrc) {
         const audioHitbox = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.34, 1.12),
+          new THREE.PlaneGeometry(1.66, 1.38),
           hitboxMaterial
         );
         audioHitbox.position.copy(audioButton.position);
@@ -2212,9 +2235,7 @@
         loader.load(
           frame.url,
           texture => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-            texture.anisotropy = isTouchDevice ? 2 : 8;
-            blankMaterial.map = texture;
+            blankMaterial.map = prepareArtworkTexture(texture);
             blankMaterial.needsUpdate = true;
           },
           undefined,
@@ -2392,7 +2413,7 @@
     scene.add(sun);
 
     function fallbackArtworkTexture(art) {
-      return makeTexture((ctx, canvas) => {
+      return prepareArtworkTexture(makeTexture((ctx, canvas) => {
         const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
         g.addColorStop(0, "#efe3ce");
         g.addColorStop(.52, "#a58d68");
@@ -2417,7 +2438,7 @@
         });
         ctx.font = "28px Georgia, serif";
         ctx.fillText(art.artist, canvas.width / 2, canvas.height / 2 + 116);
-      });
+      }));
     }
 
     function makeLabelTexture(art) {
@@ -2559,9 +2580,7 @@
       loader.load(
         art.url,
         texture => {
-          texture.colorSpace = THREE.SRGBColorSpace;
-          texture.anisotropy = isTouchDevice ? 2 : 8;
-          mat.map = texture;
+          mat.map = prepareArtworkTexture(texture);
           mat.needsUpdate = true;
         },
         undefined,
@@ -3291,6 +3310,32 @@
       mount.style.cursor = "default";
     }
 
+    function handleImmediateTouchHit(event, hit) {
+      const mesh = hit?.object;
+      if (!mesh) return false;
+      if (isAudioSubject(mesh)) {
+        event.preventDefault();
+        toggleArtworkAudio(mesh.userData.subject);
+        return true;
+      }
+      if (isStairPortal(mesh)) {
+        event.preventDefault();
+        openStairPrompt();
+        return true;
+      }
+      if (!viewingArt && mesh.userData.kind === "art") {
+        event.preventDefault();
+        inspectArtwork(mesh);
+        return true;
+      }
+      if (!viewingArt && mesh.userData.kind === "person") {
+        event.preventDefault();
+        inspectPerson(mesh);
+        return true;
+      }
+      return false;
+    }
+
     window.addEventListener("pointermove", event => {
       moveCharacterCursor(event);
       if (isWorldInputSuppressed()) {
@@ -3383,18 +3428,10 @@
         moveCharacterCursor(event);
         if (event.pointerType === "touch") {
           const hit = getInteractiveHit(event);
-          if (isAudioSubject(hit?.object)) {
-            event.preventDefault();
+          if (handleImmediateTouchHit(event, hit)) {
             lookDrag.active = false;
             lookDrag.moved = false;
-            toggleArtworkAudio(hit.object.userData.subject);
             suppressNextPointerUp = true;
-            return;
-          }
-          if (isStairPortal(hit?.object)) {
-            lookDrag.active = false;
-            lookDrag.moved = false;
-            openStairPrompt();
             return;
           }
         }
