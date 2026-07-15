@@ -582,6 +582,16 @@
       line-height: 1.55;
     }
 
+    .artists-copy {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(.84rem, 1.8vw, 1.05rem);
+      font-weight: 650;
+      line-height: 1.58;
+      text-align: center;
+      white-space: pre-line;
+    }
+
     .welcome-panel button {
       width: auto;
       min-width: 92px;
@@ -919,6 +929,7 @@
   </aside>
   <div class="home-control" id="homeMenu">
     <div class="home-menu-items" id="homeMenuItems">
+      <button id="artistsView" type="button">1학년 예술가들</button>
       <button id="guestbookView" type="button">감상 한줄평</button>
       <button id="guideView" type="button">갤러리 가이드</button>
       <button id="homeView" type="button">원래 위치로 이동</button>
@@ -935,7 +946,7 @@
   </div>
   <div class="welcome-modal is-hidden" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideText">
     <div class="welcome-panel">
-      <p id="guideText" class="guide-copy">웹 접속 시 마우스의 커서와 휠을, 모바일 접속 시 터치로 이동이 가능합니다. 또한 작품을 누르면 가까이에서 들여다 볼 수 있으며, 작품 아래 헤드폰 버튼을 누르면 작품에 영감을 준 음악이 재생됩니다.</p>
+      <p id="guideText" class="guide-copy">웹 접속 시 마우스의 커서와 휠을, 모바일 접속 시 터치로 이동이 가능합니다. 또한 작품을 누르면 가까이에서 들여다 볼 수 있으며, 작품 아래 헤드폰 버튼을 한 번 누르면 작품에 영감을 준 음악이 재생되고 다시 누르면 음악이 정지됩니다.</p>
       <button id="guideClose" type="button">닫기</button>
     </div>
   </div>
@@ -943,6 +954,28 @@
     <div class="welcome-panel">
       <p id="entryGuideText" class="guide-copy">메뉴 속 갤러리 가이드를 읽고 관람을 시작해주세요.</p>
       <button id="entryGuideClose" type="button">닫기</button>
+    </div>
+  </div>
+  <div class="welcome-modal is-hidden" id="artistsModal" role="dialog" aria-modal="true" aria-labelledby="artistsText">
+    <div class="welcome-panel">
+      <p id="artistsText" class="artists-copy"> · 1학년 예술가들 · 
+1117 이승리
+1118 이윤서
+1206 김경하
+1213 성가람
+1224 최한슬
+1304 김연우
+1305 김용현
+1401 김나령
+1414 이다연
+1502 곽민준
+1524 한석준
+1601 김동우
+1606 김은결
+1618 정소미
+1718 장아영
+1725 황태우</p>
+      <button id="artistsClose" type="button">닫기</button>
     </div>
   </div>
   <div class="welcome-modal is-hidden" id="guestbookModal" role="dialog" aria-modal="true" aria-labelledby="guestbookTitle">
@@ -987,6 +1020,7 @@
     const metaEl = document.querySelector("#artMeta");
     const homeMenu = document.querySelector("#homeMenu");
     const homeMenuToggle = document.querySelector("#homeMenuToggle");
+    const artistsView = document.querySelector("#artistsView");
     const guestbookView = document.querySelector("#guestbookView");
     const guideView = document.querySelector("#guideView");
     const homeView = document.querySelector("#homeView");
@@ -999,6 +1033,8 @@
     const guideClose = document.querySelector("#guideClose");
     const entryGuideModal = document.querySelector("#entryGuideModal");
     const entryGuideClose = document.querySelector("#entryGuideClose");
+    const artistsModal = document.querySelector("#artistsModal");
+    const artistsClose = document.querySelector("#artistsClose");
     const guestbookModal = document.querySelector("#guestbookModal");
     const guestbookForm = document.querySelector("#guestbookForm");
     const guestbookText = document.querySelector("#guestbookText");
@@ -1082,6 +1118,8 @@
       if (!button) return;
       if (button.id === "welcomeClose") runInstantButton(button, event, enterGallery);
       else if (button.id === "homeMenuToggle") runInstantButton(button, event, toggleHomeMenu);
+      else if (button.id === "artistsView") runInstantButton(button, event, openArtists);
+      else if (button.id === "artistsClose") runInstantButton(button, event, closeArtists);
       else if (button.id === "guestbookView") runInstantButton(button, event, openGuestbook);
       else if (button.id === "guestbookClose") runInstantButton(button, event, closeGuestbook);
       else if (button.id === "guideView") runInstantButton(button, event, openGuide);
@@ -1153,6 +1191,18 @@
       consumeModalEvent(event);
       closeHomeMenu();
       guideModal.classList.remove("is-hidden");
+    }
+
+    function openArtists(event) {
+      consumeModalEvent(event);
+      closeHomeMenu();
+      artistsModal.classList.remove("is-hidden");
+    }
+
+    function closeArtists(event) {
+      consumeModalEvent(event);
+      if (artistsModal.classList.contains("is-hidden")) return;
+      artistsModal.classList.add("is-hidden");
     }
 
     function closeHomeMenu() {
@@ -1385,6 +1435,8 @@
 
     bindInstantButton(welcomeClose, enterGallery);
     bindInstantButton(homeMenuToggle, toggleHomeMenu);
+    bindInstantButton(artistsView, openArtists);
+    bindInstantButton(artistsClose, closeArtists);
     bindInstantButton(guestbookView, openGuestbook);
     bindInstantButton(guideView, openGuide);
     bindInstantButton(guideClose, closeGuide);
@@ -1425,6 +1477,7 @@
         artist: "성가람",
         description: "목신의 오후에의 전주곡은 스테판 말라르메의 시 <목신의 오후> 에서 영감을 받아 작곡되었다. 이 시는 그리스 로마신화에 나오는 ‘판’을 모티브로 하고 있으며, 작품에서는 상반신은 인간, 하반신은 염소인 목신을 중심으로 푸른 하늘과 초록빛 숲의 부드러운 색감을 중심으로 평화로운 오후의 모습을 표현하였다.",
         url: "assets/art/sung-garam-green-afternoon.jpg",
+        audioSrc: "assets/audio/debussy-faun.m4a",
         side: "right",
         z: -12,
         width: 3.3,
@@ -1436,6 +1489,7 @@
         artist: "김경하",
         description: "따뜻한 분위기를 표현했다. 해와 바람을 떠올리게 하여 꽃이 피어난 들판과 시냇물, 푸른 하늘을 인상주의적인 색감으로 담았다. 형태를 정확하게 그리기보다 빛의 변화와 자연이 주는 순간의 아름다움을 표현하였다",
         url: "assets/art/kim-kyungha-spring.jpg",
+        audioSrc: "assets/audio/debussy-printemps.mp3",
         side: "left",
         z: -16.2,
         width: 3.42,
@@ -1446,6 +1500,7 @@
         artist: "김연우",
         description: "드뷔시의 바다를 들으며 내 마음속에 있는 혼란스러운 감정을 표현했다. 바다는 겉으로는 아름답지만 속에서는 무슨 일이 일어날지 모르는 것 처럼 사람도 겉은 괜찮아 보여도 내면은 여러 감정이 흔들리고 있다는 것을 표현했다.",
         url: "assets/art/kim-yeonwoo-chaotic-sea.jpg",
+        audioSrc: "assets/audio/debussy-la-mer.m4a",
         side: "right",
         z: -20.3,
         width: 3.42,
@@ -1456,6 +1511,7 @@
         artist: "김용현",
         description: "곡 초반에 밝은 분위기를 손을 흔드는 여자로 표현 하였고, 뒤로 갈수록 어두워지는 곡 분위기를 오른쪽 상단에 먹구름과 요동치는 바다를 사용하여 밝은 초반과 대비되는 어둡고 우울한 현실을 은유적으로 표현하였습니다. 이를 통해 세계에 원대한 환상과 반대되는 우울한 현실을 전하고 싶었습니다.",
         url: "assets/art/kim-yonghyun-bright-greeting-dark-reality.jpg",
+        audioSrc: "assets/audio/debussy-la-mer.m4a",
         side: "left",
         z: -24.8,
         width: 3.5,
@@ -1466,6 +1522,7 @@
         artist: "1401 김나령",
         description: "비가 온 뒤에 맑음이 찾아오는 것처럼 겨울이 지난 후에 봄이 오는 것이 모든 계절은 이어져있다고 생각해 눈꽃과 벚꽃을 합침으로써 그 생각을 표현함.",
         url: "assets/art/kim-naryeong-after-winter-spring.jpg",
+        audioSrc: "assets/audio/debussy-printemps.mp3",
         side: "right",
         z: -29.2,
         width: 3.42,
@@ -1476,6 +1533,7 @@
         artist: "곽민준",
         description: "드뷔시 음악 특유의 몽환적인 선율과 인상주의적 감성을 시각적인 형태로 재해석 하였다. 특히 어둠 속에 외로이 떠 있는 조각배 한 척은 드뷔시의 전주곡이 가진 고요하면서도 사색적인 고독감을 극대화하며, 외로우면서도 잔잔한 안정감을 주는 그림으로 재해석 하여 그렸다.",
         url: "assets/art/kwak-minjun-lonely-moon-boat.jpg",
+        audioSrc: "assets/audio/debussy-childrens-corner-track01.mp3",
         side: "left",
         z: -33.7,
         width: 3.42,
@@ -1486,28 +1544,20 @@
         artist: "1601 김동우",
         description: "점과 선을 이용하여 라발스의 느낌을 표현했다.",
         url: "assets/art/kim-dongwoo-night.jpg",
+        audioSrc: "assets/audio/ravel-la-valse.mp3",
         side: "right",
         z: -38,
         width: 3.42,
         height: 2.25
       },
       {
-        title: "사랑할 수 없는",
-        artist: "장아영",
-        description: "발데마르 왕의 애정 독차지로 인한 여왕의 질투로 처참하게 죽임을 당한 평민 도베는 죽어서도 이루어 질 수 없는 사랑을 하게된다.",
-        url: "assets/art/jang-ayeong-unlovable.jpg",
-        side: "left",
-        z: -42.7,
-        width: 1.64,
-        height: 2.45
-      },
-      {
         title: "노을지는 강가",
         artist: "정소미",
         description: "이 노래를 들으면서 노을지는 느낌이 들었다. 전체적으로 노란색과 주황색을 넣어 노을지는 느낌을 주었고, 강가의 느낌을 살리고싶어 노란색과 대비될수있는 푸른색과 연두색을 넣어 표현하였다. 또한 투시를 넣어 그림이 풍부하게 보이려고 노력하였고 물에 비치는 건물을 인상주의 느낌을 살려 표현하고자 했다.",
         url: "assets/art/jeong-somi-sunset-riverside.jpg",
+        audioSrc: "assets/audio/debussy-arabesque.mp3",
         side: "right",
-        z: -45.4,
+        z: -42.6,
         width: 3.38,
         height: 2.25
       },
@@ -1516,6 +1566,7 @@
         artist: "황태우",
         description: "드뷔시의 아라베스크를 듣고 외로움과 고독을 느껴 바다에 떠다니는 나무로 표현했다.",
         url: "assets/art/hwang-taewoo-solitude.jpg",
+        audioSrc: "assets/audio/debussy-arabesque.mp3",
         side: "end",
         z: -48.5,
         width: 3.35,
@@ -1995,6 +2046,7 @@
         z: frame.z,
         width: frame.width,
         height: frame.height,
+        centerY: floorY + (frame.yOffset || 2.48),
         floorY
       };
 
@@ -2051,6 +2103,7 @@
           artist: `${art.title}의 음악 해설을 들을 수 있는 버튼입니다.`,
           audioSrc: art.audioSrc,
           audioTitle: art.title,
+          linkedArt: art,
           surface: "object",
           view: {
             x: isEnd ? 0 : frame.side === "left" ? -2.35 : 2.35,
@@ -2064,6 +2117,17 @@
       };
       group.add(audioButton);
       interactive.push(audioButton);
+      if (art.audioSrc) {
+        const audioHitbox = new THREE.Mesh(
+          new THREE.PlaneGeometry(.96, .86),
+          hitboxMaterial
+        );
+        audioHitbox.position.copy(audioButton.position);
+        audioHitbox.position.z = .09;
+        audioHitbox.userData = audioButton.userData;
+        group.add(audioHitbox);
+        interactive.push(audioHitbox);
+      }
 
       world.add(group);
 
@@ -2189,6 +2253,7 @@
           artist: "최한슬",
           description: "전쟁으로 인하여 생긴 피해자들을 지키지 못한 사람의 죄책감을 그림으로 표현했다. 나무는 생존자의 죄책감을 표현한다.",
           url: "assets/art/choi-hanseul-guilt.jpeg",
+          audioSrc: "assets/audio/schoenberg-survivor-from-warsaw.mp3",
           side: "right",
           z: -3.2,
           width: 1.8,
@@ -2199,6 +2264,7 @@
           artist: "이다연",
           description: "아름다운 열매 속에 사랑을 전하기 위한 반지. 하지만 열매는 죽음으로 인해 썩어 문드러져버려 결국 전달 되지 못 하고 썩은 과육과 함께 바스러진다.\n\n이 작품은 구레의 노래에 영감을 받아 그린 작품으로 열매인 사과는 달콤한 사과와 함께 연인에게 사랑을 전하러가다 죽음을 맞이해 결국엔 전달하지 못한 사랑을 표현 했다. 오일파스텔로 사랑을 전하러 간 연인의 감정을 표현했으며 여러 색을 섞어 죽음의 여러 의미를 표현하였다. 죽음에 집어삼켜진 사과의 부분은 무채색으로 색을 칠했으며 사과 과육 속 반지를 더 눈에 띄게 하였다.",
           url: "assets/art/lee-dayeon-cursed.jpg",
+          audioSrc: "assets/audio/schoenberg-gurre.m4a",
           side: "left",
           z: -10.4,
           width: 1.82,
@@ -2209,16 +2275,29 @@
           artist: "김은결",
           description: "곡 제목 자체는 잔잔하고 평화로운 느낌을 조성하지만 실제로 들어보면 강하고 복잡하고 시끄럽다고 생각이 드는 소리의 조합이 몰아친다. 그 부분이 마치 밤은 모두가 긍정적이게 생각하는 정화를 온몸으로 거부하는 듯한 기분이 들었고 밝고 단정한 정화를 맞닥뜨린 붉은 별을 터트리며 소란스럽게 파과된다.",
           url: "assets/art/kim-eungyeol-mr-night.jpg",
+          audioSrc: "assets/audio/schoenberg-transfigured-night.mp3",
           side: "right",
           z: -17.6,
           width: 1.79,
           height: 2.7
         },
         {
+          title: "사랑할 수 없는",
+          artist: "장아영",
+          description: "발데마르 왕의 애정 독차지로 인한 여왕의 질투로 처참하게 죽임을 당한 평민 도베는 죽어서도 이루어 질 수 없는 사랑을 하게된다.",
+          url: "assets/art/jang-ayeong-unlovable.jpg",
+          audioSrc: "assets/audio/schoenberg-gurre.m4a",
+          side: "left",
+          z: -24.8,
+          width: 1.64,
+          height: 2.45
+        },
+        {
           title: "희극",
           artist: "한석준",
           description: "피에로가 달을 바라보는 눈으로 피에로의 감정을 생각하며 그림",
           url: "assets/art/han-seokjun-featured.jpg",
+          audioSrc: "assets/audio/schoenberg-pierrot-lunaire-op21.mp3",
           side: "end",
           z: galleryZ - galleryDepth / 2 + .16,
           width: 4.35,
@@ -2373,6 +2452,7 @@
           artist: `${art.title} 작품의 음악 해설을 들을 수 있는 버튼입니다.`,
           audioSrc: art.audioSrc,
           audioTitle: art.title,
+          linkedArt: art,
           surface: "object",
           view: {
             x: isEnd ? 0 : art.side === "left" ? -2.35 : 2.35,
@@ -2386,6 +2466,17 @@
       };
       group.add(audioButton);
       interactive.push(audioButton);
+      if (art.audioSrc) {
+        const audioHitbox = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.02, .9),
+          hitboxMaterial
+        );
+        audioHitbox.position.copy(audioButton.position);
+        audioHitbox.position.z = .09;
+        audioHitbox.userData = audioButton.userData;
+        group.add(audioHitbox);
+        interactive.push(audioHitbox);
+      }
 
       world.add(group);
 
@@ -2876,10 +2967,17 @@
 
     function updateCaption(art) {
       if (!art) return;
-      titleEl.textContent = art.description ? `작품명: ${art.title}` : art.title;
-      metaEl.textContent = art.description
-        ? `작가: ${art.artist}\n작품 해설: ${art.description}`
-        : art.artist;
+      if (art.description) {
+        titleEl.textContent = "작품 안내";
+        metaEl.textContent = `작품명: ${art.title}\n작가: ${art.artist}\n작품 해설: ${art.description}`;
+        return;
+      }
+      titleEl.textContent = art.title;
+      metaEl.textContent = art.artist;
+    }
+
+    function showArtworkInfo(art) {
+      updateCaption(art);
     }
 
     function isUiEvent(event) {
@@ -2926,7 +3024,22 @@
     function getInteractiveHit(event) {
       setPointerCoordinates(event);
       raycaster.setFromCamera(pointer, camera);
-      return raycaster.intersectObjects(interactive, false)[0] || null;
+      const hits = raycaster.intersectObjects(interactive, false);
+      return hits.find(hit => hit.object?.userData?.subject?.audioSrc)
+        || hits.find(hit => hit.object?.userData?.kind === "subject")
+        || hits[0]
+        || null;
+    }
+
+    function getHoverHit(event) {
+      setPointerCoordinates(event);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(interactive, false);
+      return hits.find(hit => hit.object?.userData?.art)
+        || hits.find(hit => hit.object?.userData?.subject?.linkedArt)
+        || hits.find(hit => hit.object?.userData?.kind === "subject")
+        || hits[0]
+        || null;
     }
 
     function shortestAngleDelta(from, to) {
@@ -2987,22 +3100,30 @@
 
     function inspectArtwork(mesh) {
       const art = mesh.userData.art;
-      const floorY = art.floorY || 0;
-      const viewY = floorY + 2.18;
+      const fov = art.viewFov || 50;
+      const aspect = Math.max(window.innerWidth / Math.max(window.innerHeight, 1), .75);
+      const verticalFov = THREE.MathUtils.degToRad(fov);
+      const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * aspect);
+      const fitHeightDistance = (art.height / 2) / Math.tan(verticalFov / 2);
+      const fitWidthDistance = (art.width / 2) / Math.tan(horizontalFov / 2);
+      const viewDistance = THREE.MathUtils.clamp(Math.max(fitHeightDistance, fitWidthDistance) * 1.42, 2.8, 5.6);
+      const viewY = art.centerY || (art.floorY || 0) + 2.18;
       viewingArt = mesh;
-      updateCaption(art);
+      hoveredArt = mesh;
+      showArtworkInfo(art);
       if (art.side === "end") {
         target.x = 0;
-        target.z = art.z + 5.05;
+        target.z = art.z + viewDistance;
         target.yaw = 0;
       } else {
-        target.x = art.side === "left" ? -2.35 : 2.35;
+        const wallX = art.side === "left" ? -4.86 : 4.86;
+        target.x = art.side === "left" ? wallX + viewDistance : wallX - viewDistance;
         target.z = art.z;
         target.yaw = art.side === "left" ? Math.PI / 2 : -Math.PI / 2;
       }
       target.pitch = 0;
       target.y = viewY;
-      target.fov = 56;
+      target.fov = fov;
       mount.style.cursor = "default";
     }
 
@@ -3016,13 +3137,13 @@
 
     function toggleArtworkAudio(subject) {
       if (!subject?.audioSrc) return false;
-      const isSameTrack = musicPlayer.getAttribute("src") === subject.audioSrc;
+      const isSameTrack = activeArtworkAudioSrc === subject.audioSrc;
       shouldAutoPlay = false;
       if (isSameTrack && !musicPlayer.paused) {
         musicPlayer.pause();
         musicPlayer.currentTime = 0;
         activeArtworkAudioSrc = "";
-        updateCaption({
+        showArtworkInfo(subject.linkedArt || {
           title: "음악 해설",
           artist: `${subject.audioTitle || "작품"} 음악을 중지했습니다.`
         });
@@ -3033,8 +3154,14 @@
         musicPlayer.src = subject.audioSrc;
       }
       musicPlayer.currentTime = 0;
-      musicPlayer.play().catch(() => {});
-      updateCaption({
+      musicPlayer.play().catch(() => {
+        activeArtworkAudioSrc = "";
+        showArtworkInfo(subject.linkedArt || {
+          title: "음악 해설",
+          artist: "브라우저가 음악 재생을 막았습니다. 헤드폰 버튼을 한 번 더 눌러주세요."
+        });
+      });
+      showArtworkInfo(subject.linkedArt || {
         title: "음악 해설",
         artist: `${subject.audioTitle || "작품"}에 영감을 준 음악을 재생합니다.`
       });
@@ -3092,8 +3219,13 @@
       }
       if (isUiEvent(event)) return;
       updateLookDrag(event);
-      if (event.pointerType === "touch" || viewingArt || lookDrag.active) return;
-      const hit = getInteractiveHit(event)?.object;
+      if (event.pointerType === "touch" || lookDrag.active) return;
+      if (viewingArt) {
+        mount.style.cursor = "default";
+        characterCursor?.classList.remove("is-hovering");
+        return;
+      }
+      const hit = getHoverHit(event)?.object;
       mount.style.cursor = hit ? "zoom-in" : "default";
       characterCursor?.classList.toggle("is-hovering", !!hit);
       if (hit?.userData.kind === "person") {
@@ -3105,7 +3237,12 @@
       }
       if (hit && hit !== hoveredArt && hit.userData.art) {
         hoveredArt = hit;
-        updateCaption(hit.userData.art);
+        showArtworkInfo(hit.userData.art);
+        return;
+      }
+      if (hit && hit !== hoveredArt && hit.userData.subject?.linkedArt) {
+        hoveredArt = hit;
+        showArtworkInfo(hit.userData.subject.linkedArt);
         return;
       }
       if (hit && hit !== hoveredArt && hit.userData.subject) {
@@ -3133,12 +3270,12 @@
       lookDrag.active = false;
       lookDrag.moved = false;
       if (wasDragging) return;
-      if (viewingArt) {
+      const hit = getInteractiveHit(event);
+      const mesh = hit?.object;
+      if (viewingArt && !mesh) {
         viewingArt = null;
         return;
       }
-      const hit = getInteractiveHit(event);
-      const mesh = hit?.object;
       if (mesh?.userData.kind === "person") inspectPerson(mesh);
       else if (mesh?.userData.kind === "art") inspectArtwork(mesh);
       else if (mesh?.userData.kind === "subject") inspectSubject(mesh, hit.point);
